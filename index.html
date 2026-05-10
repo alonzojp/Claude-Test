@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Japanese Translator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f0f14;
+      color: #e8e6e1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px 60px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: #fff;
+    }
+
+    header h1 span {
+      color: #e05252;
+    }
+
+    header p {
+      margin-top: 8px;
+      color: #888;
+      font-size: 0.9rem;
+    }
+
+    .card {
+      background: #18181f;
+      border: 1px solid #2a2a36;
+      border-radius: 16px;
+      padding: 28px;
+      width: 100%;
+      max-width: 720px;
+    }
+
+    .panel-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #666;
+      margin-bottom: 10px;
+    }
+
+    textarea {
+      width: 100%;
+      background: #0f0f14;
+      border: 1px solid #2a2a36;
+      border-radius: 10px;
+      color: #e8e6e1;
+      font-size: 1.05rem;
+      line-height: 1.6;
+      padding: 14px 16px;
+      resize: vertical;
+      min-height: 140px;
+      outline: none;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+
+    textarea:focus { border-color: #e05252; }
+
+    textarea::placeholder { color: #444; }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    button#translateBtn {
+      background: #e05252;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 11px 28px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+      flex-shrink: 0;
+    }
+
+    button#translateBtn:hover { background: #c94444; }
+    button#translateBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    button#clearBtn {
+      background: transparent;
+      color: #666;
+      border: 1px solid #2a2a36;
+      border-radius: 8px;
+      padding: 11px 18px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    button#clearBtn:hover { color: #aaa; border-color: #444; }
+
+    .spinner {
+      display: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid #333;
+      border-top-color: #e05252;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin-left: auto;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #2a2a36;
+      margin: 20px 0;
+    }
+
+    #output {
+      min-height: 100px;
+      font-size: 1.05rem;
+      line-height: 1.7;
+      color: #e8e6e1;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    #output.placeholder { color: #444; font-style: italic; }
+    #output.error { color: #e05252; }
+
+    .copy-row {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 14px;
+    }
+
+    button#copyBtn {
+      background: transparent;
+      color: #666;
+      border: 1px solid #2a2a36;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    button#copyBtn:hover { color: #aaa; border-color: #444; }
+    button#copyBtn.copied { color: #5cb85c; border-color: #5cb85c; }
+
+    footer {
+      margin-top: 32px;
+      color: #444;
+      font-size: 0.78rem;
+      text-align: center;
+    }
+
+    footer a { color: #666; text-decoration: none; }
+    footer a:hover { color: #aaa; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Japanese <span>Translator</span></h1>
+  <p>Paste any Japanese text and get an English translation instantly.</p>
+</header>
+
+<div class="card">
+  <div class="panel-label">Japanese input</div>
+  <textarea id="input" placeholder="日本語のテキストをここに貼り付けてください…" spellcheck="false"></textarea>
+
+  <div class="controls">
+    <button id="translateBtn" onclick="translate()">Translate</button>
+    <button id="clearBtn" onclick="clearAll()">Clear</button>
+    <div class="spinner" id="spinner"></div>
+  </div>
+
+  <hr class="divider" />
+
+  <div class="panel-label">English translation</div>
+  <div id="output" class="placeholder">Translation will appear here.</div>
+
+  <div class="copy-row">
+    <button id="copyBtn" onclick="copyOutput()">Copy</button>
+  </div>
+</div>
+
+<footer>
+  Powered by <a href="https://mymemory.translated.net" target="_blank" rel="noopener">MyMemory</a> &mdash; free, no account needed
+</footer>
+
+<script>
+  const inputEl   = document.getElementById('input');
+  const outputEl  = document.getElementById('output');
+  const btn       = document.getElementById('translateBtn');
+  const spinner   = document.getElementById('spinner');
+  const copyBtn   = document.getElementById('copyBtn');
+
+  inputEl.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') translate();
+  });
+
+  async function translate() {
+    const text = inputEl.value.trim();
+    if (!text) return;
+
+    btn.disabled = true;
+    spinner.style.display = 'block';
+    outputEl.className = '';
+    outputEl.textContent = '';
+
+    try {
+      const url = 'https://api.mymemory.translated.net/get?q='
+        + encodeURIComponent(text)
+        + '&langpair=ja|en';
+
+      const res  = await fetch(url);
+      const data = await res.json();
+
+      if (data.responseStatus === 200) {
+        outputEl.textContent = data.responseData.translatedText;
+      } else {
+        outputEl.className = 'error';
+        outputEl.textContent = 'Translation failed: ' + (data.responseDetails || 'unknown error');
+      }
+    } catch (err) {
+      outputEl.className = 'error';
+      outputEl.textContent = 'Network error. Check your connection and try again.';
+    } finally {
+      btn.disabled = false;
+      spinner.style.display = 'none';
+    }
+  }
+
+  function clearAll() {
+    inputEl.value = '';
+    outputEl.className = 'placeholder';
+    outputEl.textContent = 'Translation will appear here.';
+    copyBtn.className = '';
+    inputEl.focus();
+  }
+
+  function copyOutput() {
+    const text = outputEl.textContent;
+    if (!text || outputEl.classList.contains('placeholder')) return;
+    navigator.clipboard.writeText(text).then(() => {
+      copyBtn.textContent = 'Copied!';
+      copyBtn.className = 'copied';
+      setTimeout(() => { copyBtn.textContent = 'Copy'; copyBtn.className = ''; }, 2000);
+    });
+  }
+</script>
+
+</body>
+</html>
