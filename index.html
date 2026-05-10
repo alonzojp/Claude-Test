@@ -430,21 +430,27 @@
 <script>
 // ── API key management ────────────────────────────────────────────────────────
 
-function getKey()    { return localStorage.getItem('gemini_api_key') || ''; }
-function saveKey()   {
+// Injected at build time by GitHub Actions; falls back to localStorage override
+const BUILT_IN_KEY = '__GROQ_API_KEY__';
+
+function getKey() {
+  return localStorage.getItem('groq_api_key')
+    || (BUILT_IN_KEY.startsWith('__') ? '' : BUILT_IN_KEY);
+}
+function saveKey() {
   const k = document.getElementById('keyInput').value.trim();
   if (!k) return;
-  localStorage.setItem('gemini_api_key', k);
+  localStorage.setItem('groq_api_key', k);
   closeSettings();
   updateBanner();
 }
-function openSettings()  {
-  document.getElementById('keyInput').value = getKey();
+function openSettings() {
+  document.getElementById('keyInput').value = localStorage.getItem('groq_api_key') || '';
   document.getElementById('settingsOverlay').classList.add('open');
 }
 function closeSettings() { document.getElementById('settingsOverlay').classList.remove('open'); }
 function closeSettingsIfBg(e) { if (e.target === document.getElementById('settingsOverlay')) closeSettings(); }
-function updateBanner()  { document.getElementById('noKeyBanner').style.display = getKey() ? 'none' : 'block'; }
+function updateBanner() { document.getElementById('noKeyBanner').style.display = getKey() ? 'none' : 'block'; }
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSettings(); });
 updateBanner();
