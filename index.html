@@ -513,25 +513,30 @@ JSON structure:
 
 Sentence: `;
 
-async function analyzeWithGemini(text, apiKey) {
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: PROMPT + text }] }],
-        generationConfig: { responseMimeType: 'application/json', temperature: 0.1 }
-      })
-    }
-  );
+async function analyzeWithGroq(text, apiKey) {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        { role: 'system', content: 'You are a Japanese language expert. Respond only with valid JSON.' },
+        { role: 'user',   content: PROMPT + text }
+      ],
+      temperature: 0.1,
+      response_format: { type: 'json_object' }
+    })
+  });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error?.message || `API error ${res.status}`);
   }
   const data    = await res.json();
-  const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!content) throw new Error('Empty response from Gemini');
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error('Empty response from Groq');
   return parseJSON(content);
 }
 
