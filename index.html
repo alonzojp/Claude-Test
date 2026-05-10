@@ -672,7 +672,6 @@ function buildAnkiUrl(token) {
   if (token.notes) back += token.notes + '\n';
   if (sentence) back += '\nExample: ' + sentence;
   const params = new URLSearchParams({
-    profile: 'User 1',
     type: 'Basic',
     deck: 'Japanese Vocabulary',
     fldFront: front.trim(),
