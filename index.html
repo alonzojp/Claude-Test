@@ -493,12 +493,14 @@ async function doTranslate() {
       return { word, card };
     });
 
-    // Fetch all lookups in parallel; update each card as it arrives
-    await Promise.allSettled(entries.map(async ({ word, card }) => {
-      const info    = await lookupWord(word);
-      const updated = makeCard(word, info, false);
-      listEl.replaceChild(updated, card);
-    }));
+    // Fetch lookups 3 at a time to avoid overwhelming the API
+    for (let i = 0; i < entries.length; i += 3) {
+      await Promise.allSettled(entries.slice(i, i + 3).map(async ({ word, card }) => {
+        const info    = await lookupWord(word);
+        const updated = makeCard(word, info, false);
+        if (card.parentNode === listEl) listEl.replaceChild(updated, card);
+      }));
+    }
 
   } catch (err) {
     transEl.className = 'error';
