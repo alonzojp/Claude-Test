@@ -23,22 +23,22 @@
     header h1 span { color: #e05252; }
     header p { margin-top: 8px; color: #888; font-size: 0.9rem; }
 
-    .card {
+    .panel {
       background: #18181f;
       border: 1px solid #2a2a36;
       border-radius: 16px;
       padding: 28px;
       width: 100%;
-      max-width: 760px;
+      max-width: 780px;
     }
 
-    .label {
-      font-size: 0.72rem;
-      font-weight: 600;
-      letter-spacing: 0.1em;
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: #666;
-      margin-bottom: 10px;
+      color: #555;
+      margin-bottom: 12px;
     }
 
     textarea {
@@ -48,49 +48,49 @@
       border-radius: 10px;
       color: #e8e6e1;
       font-size: 1.05rem;
-      line-height: 1.6;
+      line-height: 1.65;
       padding: 14px 16px;
       resize: vertical;
-      min-height: 120px;
+      min-height: 110px;
       outline: none;
       transition: border-color 0.2s;
       font-family: inherit;
     }
     textarea:focus { border-color: #e05252; }
-    textarea::placeholder { color: #444; }
+    textarea::placeholder { color: #3a3a4a; }
 
-    .controls { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+    .controls { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
 
     #translateBtn {
       background: #e05252;
       color: #fff;
       border: none;
       border-radius: 8px;
-      padding: 11px 28px;
-      font-size: 0.95rem;
+      padding: 10px 26px;
+      font-size: 0.92rem;
       font-weight: 600;
       cursor: pointer;
       transition: background 0.15s, opacity 0.15s;
     }
     #translateBtn:hover { background: #c94444; }
-    #translateBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+    #translateBtn:disabled { opacity: 0.45; cursor: not-allowed; }
 
     #clearBtn {
       background: transparent;
-      color: #666;
+      color: #555;
       border: 1px solid #2a2a36;
       border-radius: 8px;
-      padding: 11px 18px;
-      font-size: 0.9rem;
+      padding: 10px 16px;
+      font-size: 0.88rem;
       cursor: pointer;
       transition: color 0.15s, border-color 0.15s;
     }
-    #clearBtn:hover { color: #aaa; border-color: #444; }
+    #clearBtn:hover { color: #999; border-color: #444; }
 
     .spinner {
       display: none;
-      width: 18px;
-      height: 18px;
+      width: 17px;
+      height: 17px;
       border: 2px solid #2a2a36;
       border-top-color: #e05252;
       border-radius: 50%;
@@ -99,83 +99,114 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Results */
-    #results { display: none; width: 100%; max-width: 760px; margin-top: 20px; }
+    /* ── Results ─────────────────────────────────────────── */
+    #results { display: none; width: 100%; max-width: 780px; margin-top: 18px; gap: 16px; flex-direction: column; }
 
-    .result-card {
+    .result-panel {
       background: #18181f;
       border: 1px solid #2a2a36;
       border-radius: 16px;
       padding: 24px 28px;
-      margin-bottom: 16px;
     }
 
     #translationText {
-      font-size: 1.05rem;
-      line-height: 1.75;
-      color: #e8e6e1;
+      font-size: 1.08rem;
+      line-height: 1.8;
+      color: #ddd;
       white-space: pre-wrap;
     }
-    #translationText.error { color: #e05252; }
+    #translationText.error { color: #e05252; font-size: 0.9rem; }
 
     .copy-row { display: flex; justify-content: flex-end; margin-top: 12px; }
     #copyBtn {
       background: transparent;
-      color: #666;
+      color: #555;
       border: 1px solid #2a2a36;
       border-radius: 6px;
-      padding: 6px 14px;
-      font-size: 0.8rem;
+      padding: 5px 14px;
+      font-size: 0.78rem;
       cursor: pointer;
       transition: color 0.15s, border-color 0.15s;
     }
-    #copyBtn:hover { color: #aaa; border-color: #444; }
+    #copyBtn:hover { color: #999; border-color: #444; }
     #copyBtn.copied { color: #5cb85c; border-color: #5cb85c; }
 
-    /* Word grid */
-    #wordGrid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
+    /* ── Word cards (horizontal, stacked vertically) ─────── */
+    #wordList { display: flex; flex-direction: column; gap: 10px; }
 
     .word-card {
-      background: #0f0f14;
-      border: 1px solid #2a2a36;
-      border-radius: 12px;
-      padding: 14px 16px;
-      flex: 1 1 130px;
-      max-width: 210px;
       display: flex;
-      flex-direction: column;
-      gap: 5px;
+      align-items: flex-start;
+      gap: 22px;
+      background: #0f0f14;
+      border: 1px solid #23232f;
+      border-radius: 12px;
+      padding: 16px 20px;
+      transition: border-color 0.15s;
     }
-    .word-card.loading { animation: pulse 1s ease-in-out infinite; }
-    @keyframes pulse { 0%,100%{opacity:.45} 50%{opacity:.75} }
+    .word-card:hover { border-color: #3a3a52; }
+    .word-card.loading { opacity: 0.4; animation: pulse 1.1s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:.65} }
 
-    .wc-jp   { font-size: 1.35rem; font-weight: 700; color: #fff; }
-    .wc-furi { font-size: 0.78rem; color: #e05252; }
-    .wc-rom  { font-size: 0.78rem; color: #888; font-style: italic; }
-    .wc-def  { font-size: 0.78rem; color: #aaa; line-height: 1.4; margin-top: 3px; }
-    .wc-pos  { font-size: 0.68rem; color: #555; }
+    .wc-left {
+      min-width: 80px;
+      flex-shrink: 0;
+      padding-top: 2px;
+    }
+    .wc-jp {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .wc-right { flex: 1; min-width: 0; }
+
+    .wc-reading-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .wc-furi { font-size: 0.85rem; color: #e05252; font-weight: 500; }
+    .wc-sep  { color: #3a3a52; font-size: 0.8rem; }
+    .wc-rom  { font-size: 0.85rem; color: #777; font-style: italic; }
 
     .jlpt-badge {
-      display: inline-block;
-      font-size: 0.62rem;
-      font-weight: 700;
-      letter-spacing: 0.06em;
+      font-size: 0.6rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
       padding: 2px 7px;
       border-radius: 4px;
-      margin-top: 2px;
-      width: fit-content;
     }
-    .jlpt-jlpt-n5 { background:#1a3d1a; color:#5cb85c; }
-    .jlpt-jlpt-n4 { background:#1a3038; color:#5bc0de; }
-    .jlpt-jlpt-n3 { background:#1a2a3d; color:#428bca; }
-    .jlpt-jlpt-n2 { background:#2a1a3d; color:#9b59b6; }
-    .jlpt-jlpt-n1 { background:#3d1a1a; color:#e05252; }
+    .jlpt-n5 { background: #1a3d1a; color: #5cb85c; }
+    .jlpt-n4 { background: #1a3038; color: #5bc0de; }
+    .jlpt-n3 { background: #1a2a3d; color: #428bca; }
+    .jlpt-n2 { background: #2a1a3d; color: #9b59b6; }
+    .jlpt-n1 { background: #3d1a1a; color: #e05252; }
 
-    footer { margin-top: 32px; color: #444; font-size: 0.78rem; text-align: center; }
+    .wc-pos {
+      font-size: 0.7rem;
+      color: #555;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .wc-def {
+      font-size: 0.88rem;
+      color: #bbb;
+      line-height: 1.5;
+    }
+
+    .wc-no-info {
+      font-size: 0.82rem;
+      color: #3a3a52;
+      font-style: italic;
+    }
+
+    footer { margin-top: 28px; color: #3a3a52; font-size: 0.76rem; text-align: center; }
   </style>
 </head>
 <body>
@@ -185,8 +216,8 @@
   <p>Paste any Japanese text to translate and break down word by word.</p>
 </header>
 
-<div class="card">
-  <div class="label">Japanese input</div>
+<div class="panel">
+  <div class="section-label">Japanese input</div>
   <textarea id="input" placeholder="日本語のテキストをここに貼り付けてください…" spellcheck="false"></textarea>
   <div class="controls">
     <button id="translateBtn" onclick="doTranslate()">Translate</button>
@@ -196,27 +227,27 @@
 </div>
 
 <div id="results">
-  <div class="result-card">
-    <div class="label">English translation</div>
+  <div class="result-panel">
+    <div class="section-label">English translation</div>
     <div id="translationText"></div>
     <div class="copy-row">
       <button id="copyBtn" onclick="copyTranslation()">Copy</button>
     </div>
   </div>
 
-  <div class="result-card">
-    <div class="label">Word breakdown</div>
-    <div id="wordGrid"></div>
+  <div class="result-panel">
+    <div class="section-label">Word breakdown</div>
+    <div id="wordList"></div>
   </div>
 </div>
 
-<footer>Powered by MyMemory &amp; Jisho &mdash; free, no account needed</footer>
+<footer>Translation by MyMemory · Word data by Jisho</footer>
 
 <script>
 const inputEl  = document.getElementById('input');
 const resultsEl = document.getElementById('results');
 const transEl  = document.getElementById('translationText');
-const gridEl   = document.getElementById('wordGrid');
+const listEl   = document.getElementById('wordList');
 const btn      = document.getElementById('translateBtn');
 const spinEl   = document.getElementById('spinner');
 const copyBtn  = document.getElementById('copyBtn');
@@ -225,77 +256,73 @@ inputEl.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') doTranslate();
 });
 
-// ── Translation ──────────────────────────────────────────────────────────────
+// ── Translation ───────────────────────────────────────────────────────────────
 
 async function getTranslation(text) {
-  // Primary: MyMemory (CORS-safe, designed for browser use)
+  // Primary: MyMemory (CORS-safe, built for browsers)
   try {
-    const url = 'https://api.mymemory.translated.net/get?q='
-      + encodeURIComponent(text) + '&langpair=ja%7Cen';
-    const res = await fetch(url);
+    const res  = await fetch('https://api.mymemory.translated.net/get?q='
+      + encodeURIComponent(text) + '&langpair=ja%7Cen');
     const data = await res.json();
     if (data.responseStatus === 200 && data.responseData.translatedText)
       return data.responseData.translatedText;
   } catch {}
 
   // Fallback: Google Translate unofficial endpoint
-  const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=ja&tl=en&dt=t&q='
-    + encodeURIComponent(text);
-  const res = await fetch(url);
+  const res  = await fetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl=ja&tl=en&dt=t&q='
+    + encodeURIComponent(text));
   const data = await res.json();
-  const result = data[0].filter(Boolean).map(c => c[0]).join('');
-  if (!result) throw new Error('No translation returned');
-  return result;
+  const out  = data[0].filter(Boolean).map(c => c[0]).join('');
+  if (!out) throw new Error('Translation returned empty result');
+  return out;
 }
 
-// ── Word segmentation ────────────────────────────────────────────────────────
+// ── Segmentation ──────────────────────────────────────────────────────────────
 
 function segmentText(text) {
-  // Use built-in Intl.Segmenter where available (Chrome 87+, Firefox 78+, Safari 14+)
   if ('Segmenter' in Intl) {
     const seg = new Intl.Segmenter('ja', { granularity: 'word' });
     return [...seg.segment(text)].filter(s => s.isWordLike).map(s => s.segment);
   }
-  // Fallback: split on kanji/kana runs
   return text.match(/[぀-ヿ㐀-䶿一-鿿ｦ-ﾟ]+/g) || [];
 }
 
-// ── Jisho lookup (via CORS proxy) ────────────────────────────────────────────
+// ── Jisho lookup via allorigins.win CORS proxy ────────────────────────────────
 
 async function lookupWord(word) {
   try {
-    const target = 'https://jisho.org/api/v1/search/words?keyword=' + encodeURIComponent(word);
-    const res = await fetch('https://corsproxy.io/?' + encodeURIComponent(target));
-    const data = await res.json();
+    const target  = 'https://jisho.org/api/v1/search/words?keyword=' + encodeURIComponent(word);
+    const proxy   = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(target);
+    const res     = await fetch(proxy);
+    const text    = await res.text();
+    const data    = JSON.parse(text);
     if (!data.data?.length) return null;
     const e = data.data[0];
     return {
-      reading:    e.japanese?.[0]?.reading || null,
-      jlpt:       e.jlpt?.[0] || null,
-      definition: e.senses?.[0]?.english_definitions?.slice(0, 2).join(', ') || null,
-      pos:        e.senses?.[0]?.parts_of_speech?.[0] || null,
+      reading:    e.japanese?.[0]?.reading  || null,
+      jlpt:       e.jlpt?.[0]               || null,
+      definition: e.senses?.[0]?.english_definitions?.slice(0, 3).join('; ') || null,
+      pos:        e.senses?.[0]?.parts_of_speech?.slice(0, 2).join(', ')     || null,
     };
   } catch {
     return null;
   }
 }
 
-// ── Romaji converter (Hepburn) ───────────────────────────────────────────────
+// ── Romaji (Hepburn) ──────────────────────────────────────────────────────────
 
-function toRomaji(reading) {
-  if (!reading) return '';
-  // Katakana → hiragana
-  reading = reading.replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
-
-  const combos = {
+function toRomaji(s) {
+  if (!s) return '';
+  s = s.replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+  const C = {
     'きゃ':'kya','きゅ':'kyu','きょ':'kyo','しゃ':'sha','しゅ':'shu','しょ':'sho',
     'ちゃ':'cha','ちゅ':'chu','ちょ':'cho','にゃ':'nya','にゅ':'nyu','にょ':'nyo',
     'ひゃ':'hya','ひゅ':'hyu','ひょ':'hyo','みゃ':'mya','みゅ':'myu','みょ':'myo',
     'りゃ':'rya','りゅ':'ryu','りょ':'ryo','ぎゃ':'gya','ぎゅ':'gyu','ぎょ':'gyo',
-    'じゃ':'ja','じゅ':'ju','じょ':'jo','びゃ':'bya','びゅ':'byu','びょ':'byo',
-    'ぴゃ':'pya','ぴゅ':'pyu','ぴょ':'pyo','ふぁ':'fa','ふぃ':'fi','ふぇ':'fe','ふぉ':'fo',
+    'じゃ':'ja', 'じゅ':'ju', 'じょ':'jo', 'びゃ':'bya','びゅ':'byu','びょ':'byo',
+    'ぴゃ':'pya','ぴゅ':'pyu','ぴょ':'pyo','ふぁ':'fa', 'ふぃ':'fi', 'ふぇ':'fe','ふぉ':'fo',
   };
-  const singles = {
+  const S = {
     'あ':'a','い':'i','う':'u','え':'e','お':'o',
     'か':'ka','き':'ki','く':'ku','け':'ke','こ':'ko',
     'さ':'sa','し':'shi','す':'su','せ':'se','そ':'so',
@@ -313,78 +340,101 @@ function toRomaji(reading) {
     'ぱ':'pa','ぴ':'pi','ぷ':'pu','ぺ':'pe','ぽ':'po',
     'ゃ':'ya','ゅ':'yu','ょ':'yo','ー':'-',
   };
-
-  let result = '';
-  let i = 0;
-  while (i < reading.length) {
-    if (reading[i] === 'っ') {
-      const peek = combos[reading.slice(i+1, i+3)] || singles[reading[i+1]] || '';
-      result += peek[0] || '';
-      i++; continue;
+  let out = '', i = 0;
+  while (i < s.length) {
+    if (s[i] === 'っ') {
+      const peek = C[s.slice(i+1,i+3)] || S[s[i+1]] || '';
+      out += peek[0] || ''; i++; continue;
     }
-    const two = reading.slice(i, i+2);
-    if (combos[two])        { result += combos[two]; i += 2; }
-    else if (singles[reading[i]]) { result += singles[reading[i]]; i++; }
-    else                    { result += reading[i]; i++; }
+    const two = s.slice(i, i+2);
+    if (C[two])   { out += C[two]; i += 2; }
+    else if (S[s[i]]) { out += S[s[i]]; i++; }
+    else          { out += s[i]; i++; }
   }
-  return result;
+  return out;
 }
 
-// ── Render ───────────────────────────────────────────────────────────────────
+// ── Card builder ──────────────────────────────────────────────────────────────
 
 function makeCard(word, info, loading) {
   const card = document.createElement('div');
   card.className = 'word-card' + (loading ? ' loading' : '');
 
+  // Left column: Japanese word
+  const left = document.createElement('div');
+  left.className = 'wc-left';
   const jp = document.createElement('div');
   jp.className = 'wc-jp';
   jp.textContent = word;
-  card.appendChild(jp);
+  left.appendChild(jp);
+  card.appendChild(left);
+
+  // Right column: details
+  const right = document.createElement('div');
+  right.className = 'wc-right';
 
   if (info) {
     const reading = info.reading;
     const romaji  = toRomaji(reading);
 
+    // Reading row
+    const row = document.createElement('div');
+    row.className = 'wc-reading-row';
+
     if (reading && reading !== word) {
-      const el = document.createElement('div');
-      el.className = 'wc-furi';
-      el.textContent = reading;
-      card.appendChild(el);
+      const f = document.createElement('span');
+      f.className = 'wc-furi';
+      f.textContent = reading;
+      row.appendChild(f);
+
+      const sep = document.createElement('span');
+      sep.className = 'wc-sep';
+      sep.textContent = '·';
+      row.appendChild(sep);
     }
 
-    if (romaji && romaji !== word) {
-      const el = document.createElement('div');
-      el.className = 'wc-rom';
-      el.textContent = romaji;
-      card.appendChild(el);
+    if (romaji) {
+      const r = document.createElement('span');
+      r.className = 'wc-rom';
+      r.textContent = romaji;
+      row.appendChild(r);
     }
 
     if (info.jlpt) {
-      const el = document.createElement('div');
-      el.className = `jlpt-badge jlpt-${info.jlpt}`;
-      el.textContent = info.jlpt.replace('jlpt-', '').toUpperCase();
-      card.appendChild(el);
+      const level = info.jlpt.replace('jlpt-', '');
+      const b = document.createElement('span');
+      b.className = `jlpt-badge jlpt-${level}`;
+      b.textContent = level.toUpperCase();
+      row.appendChild(b);
     }
 
+    right.appendChild(row);
+
     if (info.pos) {
-      const el = document.createElement('div');
-      el.className = 'wc-pos';
-      el.textContent = info.pos;
-      card.appendChild(el);
+      const p = document.createElement('div');
+      p.className = 'wc-pos';
+      p.textContent = info.pos;
+      right.appendChild(p);
     }
 
     if (info.definition) {
-      const el = document.createElement('div');
-      el.className = 'wc-def';
-      el.textContent = info.definition;
-      card.appendChild(el);
+      const d = document.createElement('div');
+      d.className = 'wc-def';
+      d.textContent = info.definition;
+      right.appendChild(d);
     }
+  } else if (!loading) {
+    const ni = document.createElement('div');
+    ni.className = 'wc-no-info';
+    ni.textContent = 'No dictionary entry found';
+    right.appendChild(ni);
   }
 
+  card.appendChild(right);
   return card;
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────────
+// ── Main ──────────────────────────────────────────────────────────────────────
 
 async function doTranslate() {
   const text = inputEl.value.trim();
@@ -393,9 +443,9 @@ async function doTranslate() {
   btn.disabled = true;
   spinEl.style.display = 'block';
   resultsEl.style.display = 'none';
-  gridEl.innerHTML = '';
   transEl.textContent = '';
   transEl.className = '';
+  listEl.innerHTML = '';
 
   try {
     const [translation, words] = await Promise.all([
@@ -404,26 +454,26 @@ async function doTranslate() {
     ]);
 
     transEl.textContent = translation;
-    resultsEl.style.display = 'block';
+    resultsEl.style.display = 'flex';
 
-    // Show skeleton cards immediately
+    // Render skeleton cards immediately so the user sees progress
     const entries = words.map(word => {
       const card = makeCard(word, null, true);
-      gridEl.appendChild(card);
+      listEl.appendChild(card);
       return { word, card };
     });
 
-    // Fetch all word data in parallel, update cards as they resolve
+    // Fetch all lookups in parallel; update each card as it arrives
     await Promise.allSettled(entries.map(async ({ word, card }) => {
-      const info = await lookupWord(word);
+      const info    = await lookupWord(word);
       const updated = makeCard(word, info, false);
-      gridEl.replaceChild(updated, card);
+      listEl.replaceChild(updated, card);
     }));
 
   } catch (err) {
     transEl.className = 'error';
     transEl.textContent = 'Error: ' + err.message;
-    resultsEl.style.display = 'block';
+    resultsEl.style.display = 'flex';
   } finally {
     btn.disabled = false;
     spinEl.style.display = 'none';
@@ -434,15 +484,15 @@ function clearAll() {
   inputEl.value = '';
   resultsEl.style.display = 'none';
   transEl.textContent = '';
-  gridEl.innerHTML = '';
+  listEl.innerHTML = '';
   copyBtn.className = '';
   inputEl.focus();
 }
 
 function copyTranslation() {
-  const text = transEl.textContent;
-  if (!text || transEl.classList.contains('error')) return;
-  navigator.clipboard.writeText(text).then(() => {
+  const t = transEl.textContent;
+  if (!t || transEl.classList.contains('error')) return;
+  navigator.clipboard.writeText(t).then(() => {
     copyBtn.textContent = 'Copied!';
     copyBtn.classList.add('copied');
     setTimeout(() => { copyBtn.textContent = 'Copy'; copyBtn.className = ''; }, 2000);
