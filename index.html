@@ -228,18 +228,18 @@
     outputEl.textContent = '';
 
     try {
-      const url = 'https://api.mymemory.translated.net/get?q='
-        + encodeURIComponent(text)
-        + '&langpair=ja|en';
+      const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=ja&tl=en&dt=t&q='
+        + encodeURIComponent(text);
 
       const res  = await fetch(url);
       const data = await res.json();
 
-      if (data.responseStatus === 200) {
-        outputEl.textContent = data.responseData.translatedText;
+      const translation = data[0].map(chunk => chunk[0]).join('');
+      if (translation) {
+        outputEl.textContent = translation;
       } else {
         outputEl.className = 'error';
-        outputEl.textContent = 'Translation failed: ' + (data.responseDetails || 'unknown error');
+        outputEl.textContent = 'No translation returned. Try again.';
       }
     } catch (err) {
       outputEl.className = 'error';
