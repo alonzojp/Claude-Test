@@ -702,82 +702,63 @@ function buildAnkiUrl(token) {
   const romaji   = token.romaji || toRomaji(token.reading || '');
   const def      = (token.english && !looksLikeReading(token.english)) ? token.english : '';
 
-  // [sound:URL] is the Anki-native way to play audio; AnkiMobile 2.0.90+ supports web URLs
-  const wordSound = `[sound:${googleTtsUrl(token.surface)}]`;
-  const sentSound = sentence ? `[sound:${googleTtsUrl(sentence)}]` : '';
+  const F = 'font-family:-apple-system,\'Hiragino Sans\',\'Noto Sans JP\',sans-serif;';
 
-  // ── JLPT badge colours (light-mode friendly) ───────────────
-  const jlptStyle = {
-    N5: 'background:#e8f5e9;color:#2e7d32',
-    N4: 'background:#e3f2fd;color:#1565c0',
-    N3: 'background:#e8eaf6;color:#283593',
-    N2: 'background:#f3e5f5;color:#6a1b9a',
-    N1: 'background:#ffebee;color:#c62828',
-  };
-  const jlptBadgeHtml = token.jlpt
-    ? `<span style="${jlptStyle[token.jlpt]||'background:#f5f5f5;color:#555'};`
-      + `border-radius:4px;padding:2px 9px;font-size:0.72em;font-weight:700;letter-spacing:0.06em;margin:0 3px;">`
-      + `${token.jlpt}</span>`
+  // Outline badges — border+color only, no background fill, works on any theme
+  const jlptColor = {N5:'#5cb85c',N4:'#5bc0de',N3:'#7986cb',N2:'#ba68c8',N1:'#e05252'};
+  const badgeBase = 'border-radius:4px;padding:2px 10px;font-size:0.72em;font-weight:700;letter-spacing:0.07em;margin:0 3px;';
+  const jlptBadge = token.jlpt
+    ? `<span style="${badgeBase}border:1.5px solid ${jlptColor[token.jlpt]||'#888'};color:${jlptColor[token.jlpt]||'#888'};">${token.jlpt}</span>`
     : '';
-  const posBadgeHtml = token.part_of_speech
-    ? `<span style="background:#eef0ff;color:#3949ab;border-radius:4px;padding:2px 9px;`
-      + `font-size:0.72em;text-transform:uppercase;letter-spacing:0.08em;margin:0 3px;">`
-      + `${token.part_of_speech}</span>`
+  const posBadge = token.part_of_speech
+    ? `<span style="${badgeBase}border:1.5px solid #7986cb;color:#7986cb;text-transform:uppercase;font-weight:600;letter-spacing:0.1em;">${token.part_of_speech}</span>`
     : '';
 
-  // ── Front: word + reading + word audio ────────────────────
-  const front = wordSound
-    + `<div style="text-align:center;padding:44px 20px 36px;`
-    + `font-family:-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;">`
-    + `<div style="font-size:3.6em;font-weight:700;color:#111;line-height:1.1;`
-    + `letter-spacing:0.02em;margin-bottom:18px;">${token.surface}</div>`
-    + (reading
-      ? `<div style="font-size:1.25em;color:#888;letter-spacing:0.04em;">${reading}</div>`
-      : '')
+  // ── Front ─────────────────────────────────────────────────
+  // No hardcoded text color — inherits Anki's theme (dark text / light text)
+  const front = `<div style="${F}text-align:center;padding:44px 20px 28px;">`
+    + `<div style="font-size:3.6em;font-weight:700;line-height:1.1;letter-spacing:0.02em;margin-bottom:18px;">${token.surface}</div>`
+    + (reading ? `<div style="font-size:1.25em;color:#888;letter-spacing:0.04em;">${reading}</div>` : '')
+    + `<audio controls src="${googleTtsUrl(token.surface)}" style="margin-top:22px;width:220px;display:block;margin-left:auto;margin-right:auto;"></audio>`
     + `</div>`;
 
-  // ── Back: full details + sentence audio ────────────────────
-  let back = `<div style="font-family:-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;`
-           + `max-width:500px;margin:0 auto;padding:20px 16px;">`;
+  // ── Back ──────────────────────────────────────────────────
+  let back = `<div style="${F}max-width:500px;margin:0 auto;padding:20px 16px;">`;
 
-  // Reading + romaji row
+  // Reading + romaji
   if (reading || romaji) {
-    back += `<div style="text-align:center;color:#777;font-size:1.05em;margin-bottom:10px;">`;
-    if (reading) back += `<span style="color:#555;">${reading}</span>`;
-    if (romaji)  back += `${reading ? `<span style="color:#ccc;margin:0 6px;">·</span>` : ''}`
-                       + `<em style="color:#aaa;font-style:italic;">${romaji}</em>`;
+    back += `<div style="text-align:center;color:#888;font-size:1.05em;margin-bottom:10px;">`;
+    if (reading) back += reading;
+    if (romaji)  back += (reading ? `<span style="margin:0 7px;opacity:0.4;">·</span>` : '')
+                       + `<em style="font-style:italic;opacity:0.75;">${romaji}</em>`;
     back += `</div>`;
   }
 
   // Badges
-  if (posBadgeHtml || jlptBadgeHtml) {
-    back += `<div style="text-align:center;margin-bottom:20px;">${posBadgeHtml}${jlptBadgeHtml}</div>`;
+  if (posBadge || jlptBadge) {
+    back += `<div style="text-align:center;margin-bottom:18px;">${posBadge}${jlptBadge}</div>`;
   }
 
-  // Divider
-  back += `<hr style="border:none;border-top:1px solid #eee;margin:0 0 20px;">`;
+  // Divider — currentColor with low opacity works on any background
+  back += `<hr style="border:none;border-top:1px solid currentColor;opacity:0.15;margin:0 0 20px;">`;
 
-  // Definition
+  // Definition — no color set, inherits theme
   if (def) {
-    back += `<div style="font-size:1.55em;font-weight:600;color:#111;`
-          + `text-align:center;margin-bottom:12px;line-height:1.3;">${def}</div>`;
+    back += `<div style="font-size:1.55em;font-weight:600;text-align:center;margin-bottom:12px;line-height:1.3;">${def}</div>`;
   }
 
   // Notes
   if (token.notes) {
-    back += `<div style="font-size:0.88em;color:#aaa;font-style:italic;`
-          + `text-align:center;margin-bottom:18px;">${token.notes}</div>`;
+    back += `<div style="font-size:0.88em;color:#888;font-style:italic;text-align:center;margin-bottom:18px;">${token.notes}</div>`;
   }
 
-  // Example sentence
+  // Example sentence — left border only, no background fill
   if (sentence) {
-    back += `<div style="background:#f7f8fc;border-left:3px solid #c5cae9;`
-          + `border-radius:0 6px 6px 0;padding:12px 16px;margin-top:8px;">`
-          + `<div style="font-size:0.65em;color:#bbb;text-transform:uppercase;`
-          + `letter-spacing:0.12em;margin-bottom:8px;font-weight:600;">Example</div>`
-          + `<div style="font-size:1.05em;color:#333;line-height:1.65;">${sentence}</div>`
+    back += `<div style="border-left:3px solid #7986cb;padding:10px 14px;margin-top:8px;opacity:0.9;">`
+          + `<div style="font-size:0.65em;color:#888;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:8px;font-weight:600;">Example</div>`
+          + `<div style="font-size:1.05em;line-height:1.65;">${sentence}</div>`
           + `</div>`;
-    back += sentSound;
+    back += `<audio controls src="${googleTtsUrl(sentence)}" style="width:100%;margin-top:14px;"></audio>`;
   }
 
   back += `</div>`;
