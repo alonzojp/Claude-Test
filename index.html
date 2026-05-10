@@ -432,10 +432,9 @@ function makeCard(word, info, loading) {
     }
 
     if (info.jlpt) {
-      const level = info.jlpt.replace('jlpt-', '');
       const b = document.createElement('span');
-      b.className = `jlpt-badge jlpt-${level}`;
-      b.textContent = level.toUpperCase();
+      b.className = `jlpt-badge jlpt-n${info.jlpt}`;
+      b.textContent = `N${info.jlpt}`;
       row.appendChild(b);
     }
 
