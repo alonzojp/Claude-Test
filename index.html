@@ -377,9 +377,12 @@
       (just an email, no credit card needed). Your key stays in your browser only — it is never sent anywhere except Groq's API.
     </p>
     <input type="password" id="keyInput" placeholder="AIzaSy..." autocomplete="off" />
+    <h2 style="margin-top:18px">Anki Profile Name</h2>
+    <p>Required for the "+ Anki" export button. Open Anki on your device — the profile name is shown on the profile selection screen (default is usually <strong>User 1</strong>).</p>
+    <input type="text" id="ankiProfileInput" placeholder="User 1" autocomplete="off" />
     <div class="modal-btns">
       <button class="btn-ghost" onclick="closeSettings()">Cancel</button>
-      <button class="btn-primary" onclick="saveKey()">Save Key</button>
+      <button class="btn-primary" onclick="saveSettings()">Save</button>
     </div>
   </div>
 </div>
@@ -456,15 +459,18 @@ function getKey() {
   return localStorage.getItem('groq_api_key')
     || (BUILT_IN_KEY.startsWith('__') ? '' : BUILT_IN_KEY);
 }
-function saveKey() {
+function saveSettings() {
   const k = document.getElementById('keyInput').value.trim();
-  if (!k) return;
-  localStorage.setItem('groq_api_key', k);
+  if (k) localStorage.setItem('groq_api_key', k);
+  const p = document.getElementById('ankiProfileInput').value.trim();
+  if (p) localStorage.setItem('anki_profile', p);
   closeSettings();
   updateBanner();
 }
+function saveKey() { saveSettings(); }
 function openSettings() {
   document.getElementById('keyInput').value = localStorage.getItem('groq_api_key') || '';
+  document.getElementById('ankiProfileInput').value = localStorage.getItem('anki_profile') || '';
   document.getElementById('settingsOverlay').classList.add('open');
 }
 function closeSettings() { document.getElementById('settingsOverlay').classList.remove('open'); }
@@ -671,9 +677,11 @@ function buildAnkiUrl(token) {
   if (token.english && !looksLikeReading(token.english)) back += token.english + '\n';
   if (token.notes) back += token.notes + '\n';
   if (sentence) back += '\nExample: ' + sentence;
+  const profile = localStorage.getItem('anki_profile') || 'User 1';
   const enc = encodeURIComponent;
   return 'anki://x-callback-url/addnote'
-    + '?type=' + enc('Basic')
+    + '?profile=' + enc(profile)
+    + '&type=' + enc('Basic')
     + '&deck=' + enc('Mining')
     + '&fldFront=' + enc(front.trim())
     + '&fldBack=' + enc(back.trim());
