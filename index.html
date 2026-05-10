@@ -391,6 +391,9 @@
     <h2 style="margin-top:18px">Anki Profile Name</h2>
     <p>Required for the "+ Anki" export button. Open Anki on your device — the profile name is shown on the profile selection screen (default is usually <strong>User 1</strong>).</p>
     <input type="text" id="ankiProfileInput" placeholder="User 1" autocomplete="off" />
+    <p style="margin-top:14px;padding:10px 12px;background:#1a1a10;border:1px solid #3a3a10;border-radius:8px;color:#aaa880;font-size:0.82rem;line-height:1.6;">
+      🔊 <strong style="color:#d4c840;">One-time audio setup:</strong> In AnkiMobile, browse any card → Edit → Cards… → add <code style="background:#2a2a14;padding:1px 5px;border-radius:3px;">{{tts ja_JP:Front}}</code> to the end of the <em>Front Template</em> → Save. Cards will then auto-play Japanese TTS.
+    </p>
     <div class="modal-btns">
       <button class="btn-ghost" onclick="closeSettings()">Cancel</button>
       <button class="btn-primary" onclick="saveSettings()">Save</button>
@@ -690,11 +693,6 @@ function looksLikeReading(s) {
   return /^[぀-ゟ゠-ヿ\s・ー]+$/.test((s || '').trim());
 }
 
-function googleTtsUrl(text) {
-  return 'https://translate.google.com/translate_tts?ie=UTF-8&tl=ja&client=tw-ob&q='
-    + encodeURIComponent(text);
-}
-
 function buildAnkiUrl(token) {
   const sentence = inputEl.value.trim();
   const profile  = localStorage.getItem('anki_profile') || 'User 1';
@@ -702,63 +700,61 @@ function buildAnkiUrl(token) {
   const romaji   = token.romaji || toRomaji(token.reading || '');
   const def      = (token.english && !looksLikeReading(token.english)) ? token.english : '';
 
-  const F = 'font-family:-apple-system,\'Hiragino Sans\',\'Noto Sans JP\',sans-serif;';
-
-  // Outline badges — border+color only, no background fill, works on any theme
+  // Outline badges — border+color only so they're readable on both light and dark
   const jlptColor = {N5:'#5cb85c',N4:'#5bc0de',N3:'#7986cb',N2:'#ba68c8',N1:'#e05252'};
-  const badgeBase = 'border-radius:4px;padding:2px 10px;font-size:0.72em;font-weight:700;letter-spacing:0.07em;margin:0 3px;';
+  const b = 'border-radius:4px;padding:2px 10px;font-size:0.72em;font-weight:700;letter-spacing:0.07em;margin:0 3px;';
   const jlptBadge = token.jlpt
-    ? `<span style="${badgeBase}border:1.5px solid ${jlptColor[token.jlpt]||'#888'};color:${jlptColor[token.jlpt]||'#888'};">${token.jlpt}</span>`
-    : '';
-  const posBadge = token.part_of_speech
-    ? `<span style="${badgeBase}border:1.5px solid #7986cb;color:#7986cb;text-transform:uppercase;font-weight:600;letter-spacing:0.1em;">${token.part_of_speech}</span>`
-    : '';
+    ? `<span style="${b}border:1.5px solid ${jlptColor[token.jlpt]||'#888'};color:${jlptColor[token.jlpt]||'#888'};">${token.jlpt}</span>` : '';
+  const posBadge  = token.part_of_speech
+    ? `<span style="${b}border:1.5px solid #7986cb;color:#7986cb;text-transform:uppercase;letter-spacing:0.1em;">${token.part_of_speech}</span>` : '';
 
-  // ── Front ─────────────────────────────────────────────────
-  // No hardcoded text color — inherits Anki's theme (dark text / light text)
-  const front = `<div style="${F}text-align:center;padding:44px 20px 28px;">`
-    + `<div style="font-size:3.6em;font-weight:700;line-height:1.1;letter-spacing:0.02em;margin-bottom:18px;">${token.surface}</div>`
-    + (reading ? `<div style="font-size:1.25em;color:#888;letter-spacing:0.04em;">${reading}</div>` : '')
-    + `<audio controls src="${googleTtsUrl(token.surface)}" style="margin-top:22px;width:220px;display:block;margin-left:auto;margin-right:auto;"></audio>`
-    + `</div>`;
+  // Shared CSS injected once per field; @media dark + .night_mode covers iOS and desktop Anki
+  const sharedCss = `<style>
+.af,.ab{font-family:-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;}
+.af{text-align:center;padding:44px 20px 32px;}
+.af-w{font-size:3.6em;font-weight:700;line-height:1.1;letter-spacing:0.02em;}
+.ab{max-width:500px;margin:0 auto;padding:20px 16px;}
+.ab-r{text-align:center;color:#888;font-size:1.05em;margin-bottom:10px;}
+.ab-bdg{text-align:center;margin-bottom:18px;}
+.ab-hr{border:none;border-top:1px solid currentColor;opacity:0.15;margin:0 0 20px;}
+.ab-def{font-size:1.55em;font-weight:600;text-align:center;margin-bottom:12px;line-height:1.3;}
+.ab-note{font-size:0.88em;color:#888;font-style:italic;text-align:center;margin-bottom:18px;}
+.ab-ex{border-left:3px solid #7986cb;padding:10px 14px;margin-top:8px;}
+.ab-exl{font-size:0.65em;color:#888;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:8px;font-weight:600;}
+.ab-ext{font-size:1.05em;line-height:1.65;}
+@media(prefers-color-scheme:dark){.af-w,.ab-def,.ab-ext{color:#eeeeee;}}
+.night_mode .af-w,.night_mode .ab-def,.night_mode .ab-ext{color:#eeeeee;}
+</style>`;
 
-  // ── Back ──────────────────────────────────────────────────
-  let back = `<div style="${F}max-width:500px;margin:0 auto;padding:20px 16px;">`;
+  // ── Front: surface form only — no furigana (reader must recognise kanji) ──
+  const front = sharedCss
+    + `<div class="af"><div class="af-w">${token.surface}</div></div>`;
 
-  // Reading + romaji
+  // ── Back: reading, meta badges, definition, notes, example ──
+  let back = sharedCss + `<div class="ab">`;
+
   if (reading || romaji) {
-    back += `<div style="text-align:center;color:#888;font-size:1.05em;margin-bottom:10px;">`;
+    back += `<div class="ab-r">`;
     if (reading) back += reading;
-    if (romaji)  back += (reading ? `<span style="margin:0 7px;opacity:0.4;">·</span>` : '')
-                       + `<em style="font-style:italic;opacity:0.75;">${romaji}</em>`;
+    if (romaji)  back += (reading ? `<span style="margin:0 7px;opacity:0.35;">·</span>` : '')
+                       + `<em style="font-style:italic;opacity:0.7;">${romaji}</em>`;
     back += `</div>`;
   }
 
-  // Badges
   if (posBadge || jlptBadge) {
-    back += `<div style="text-align:center;margin-bottom:18px;">${posBadge}${jlptBadge}</div>`;
+    back += `<div class="ab-bdg">${posBadge}${jlptBadge}</div>`;
   }
 
-  // Divider — currentColor with low opacity works on any background
-  back += `<hr style="border:none;border-top:1px solid currentColor;opacity:0.15;margin:0 0 20px;">`;
+  back += `<hr class="ab-hr">`;
 
-  // Definition — no color set, inherits theme
-  if (def) {
-    back += `<div style="font-size:1.55em;font-weight:600;text-align:center;margin-bottom:12px;line-height:1.3;">${def}</div>`;
-  }
+  if (def)          back += `<div class="ab-def">${def}</div>`;
+  if (token.notes)  back += `<div class="ab-note">${token.notes}</div>`;
 
-  // Notes
-  if (token.notes) {
-    back += `<div style="font-size:0.88em;color:#888;font-style:italic;text-align:center;margin-bottom:18px;">${token.notes}</div>`;
-  }
-
-  // Example sentence — left border only, no background fill
   if (sentence) {
-    back += `<div style="border-left:3px solid #7986cb;padding:10px 14px;margin-top:8px;opacity:0.9;">`
-          + `<div style="font-size:0.65em;color:#888;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:8px;font-weight:600;">Example</div>`
-          + `<div style="font-size:1.05em;line-height:1.65;">${sentence}</div>`
+    back += `<div class="ab-ex">`
+          + `<div class="ab-exl">Example</div>`
+          + `<div class="ab-ext">${sentence}</div>`
           + `</div>`;
-    back += `<audio controls src="${googleTtsUrl(sentence)}" style="width:100%;margin-top:14px;"></audio>`;
   }
 
   back += `</div>`;
