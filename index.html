@@ -281,6 +281,25 @@
     .wc-note { font-size: 0.8rem; color: #666; line-height: 1.45; margin-top: 4px; font-style: italic; }
     .wc-dict { font-size: 0.75rem; color: #555; margin-top: 3px; }
 
+    .anki-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 8px;
+      padding: 3px 10px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #5a82ff;
+      background: transparent;
+      border: 1px solid #2a3a6a;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+      font-family: inherit;
+    }
+    .anki-btn:hover { color: #7aa0ff; border-color: #4060aa; background: #1a2040; }
+    .anki-btn.added { color: #5cb85c; border-color: #2a4a2a; }
+
     /* Grammar points */
     #grammarList { display: flex; flex-direction: column; gap: 10px; }
 
@@ -635,6 +654,33 @@ function toRomaji(s) {
 
 // ── Render helpers ────────────────────────────────────────────────────────────
 
+// Returns true if the string is all kana (no English letters) — likely a reading, not a definition
+function looksLikeReading(s) {
+  return /^[぀-ゟ゠-ヿ\s・ー]+$/.test((s || '').trim());
+}
+
+function buildAnkiUrl(token) {
+  const sentence = inputEl.value.trim();
+  const front = token.surface;
+  let back = '';
+  if (token.reading && token.reading !== token.surface) {
+    const rom = token.romaji || toRomaji(token.reading);
+    back += token.reading + (rom ? ' (' + rom + ')' : '') + '\n';
+  }
+  if (token.part_of_speech) back += '[' + token.part_of_speech + ']\n';
+  if (token.english && !looksLikeReading(token.english)) back += token.english + '\n';
+  if (token.notes) back += token.notes + '\n';
+  if (sentence) back += '\nExample: ' + sentence;
+  const params = new URLSearchParams({
+    profile: 'User 1',
+    type: 'Basic',
+    deck: 'Japanese Vocabulary',
+    fldFront: front.trim(),
+    fldBack: back.trim(),
+  });
+  return 'anki://x-callback-url/addnote?' + params.toString();
+}
+
 function jlptBadge(jlpt) {
   if (!jlpt) return '';
   const el = document.createElement('span');
@@ -678,12 +724,23 @@ function makeWordCard(token) {
   if (token.dictionary_form && token.dictionary_form !== token.surface) {
     const d = document.createElement('div'); d.className='wc-dict'; d.textContent='dict: '+token.dictionary_form; right.appendChild(d);
   }
-  if (token.english) {
+  if (token.english && !looksLikeReading(token.english)) {
     const e = document.createElement('div'); e.className='wc-def'; e.textContent=token.english; right.appendChild(e);
   }
   if (token.notes) {
     const n = document.createElement('div'); n.className='wc-note'; n.textContent=token.notes; right.appendChild(n);
   }
+
+  const ankiBtn = document.createElement('button');
+  ankiBtn.className = 'anki-btn';
+  ankiBtn.textContent = '+ Anki';
+  ankiBtn.addEventListener('click', () => {
+    window.location.href = buildAnkiUrl(token);
+    ankiBtn.textContent = 'Sent!';
+    ankiBtn.classList.add('added');
+    setTimeout(() => { ankiBtn.textContent = '+ Anki'; ankiBtn.classList.remove('added'); }, 2000);
+  });
+  right.appendChild(ankiBtn);
 
   card.appendChild(right);
   return card;
