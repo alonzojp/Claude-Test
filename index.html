@@ -836,7 +836,7 @@ async function doTranslate() {
     const apiKey = getKey();
 
     if (apiKey) {
-      const data = await analyzeWithGemini(text, apiKey);
+      const data = await analyzeWithGroq(text, apiKey);
       lastNatural = data.translation?.natural || '';
       renderAI(data);
     } else {
