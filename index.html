@@ -671,13 +671,12 @@ function buildAnkiUrl(token) {
   if (token.english && !looksLikeReading(token.english)) back += token.english + '\n';
   if (token.notes) back += token.notes + '\n';
   if (sentence) back += '\nExample: ' + sentence;
-  const params = new URLSearchParams({
-    type: 'Basic',
-    deck: 'Mining',
-    fldFront: front.trim(),
-    fldBack: back.trim(),
-  });
-  return 'anki://x-callback-url/addnote?' + params.toString();
+  const enc = encodeURIComponent;
+  return 'anki://x-callback-url/addnote'
+    + '?type=' + enc('Basic')
+    + '&deck=' + enc('Mining')
+    + '&fldFront=' + enc(front.trim())
+    + '&fldBack=' + enc(back.trim());
 }
 
 function jlptBadge(jlpt) {
