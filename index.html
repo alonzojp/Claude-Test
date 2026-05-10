@@ -257,7 +257,18 @@
     }
     .word-card:hover { border-color: #3a3a55; }
 
-    .wc-jp { font-size: 1.5rem; font-weight: 700; color: #fff; line-height: 1; min-width: 80px; flex-shrink: 0; padding-top: 2px; }
+    .wc-jp { font-size: 1.5rem; font-weight: 700; color: #fff; line-height: 1; min-width: 80px; flex-shrink: 0; padding-top: 2px;
+             display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+
+    .speak-btn {
+      background: transparent; border: none; color: #555; cursor: pointer;
+      font-size: 0.88rem; padding: 2px 4px; border-radius: 4px;
+      transition: color 0.15s; line-height: 1;
+    }
+    .speak-btn:hover { color: #aaa; }
+
+    .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .panel-header .lbl { margin-bottom: 0; }
 
     .wc-right { flex: 1; min-width: 0; }
 
@@ -408,7 +419,10 @@
 
   <!-- Translation -->
   <div class="result-panel" id="panelTranslation">
-    <div class="lbl">Translation</div>
+    <div class="panel-header">
+      <div class="lbl">Translation</div>
+      <button id="sentenceSpeakBtn" class="speak-btn" title="Play sentence">🔊</button>
+    </div>
     <div id="transContent"></div>
     <div class="copy-row">
       <button class="copy-btn" id="copyBtn" onclick="copyNatural()">Copy</button>
@@ -491,6 +505,17 @@ const copyBtn    = document.getElementById('copyBtn');
 inputEl.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') doTranslate();
 });
+
+function speakText(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'ja-JP';
+  u.rate = 0.85;
+  window.speechSynthesis.speak(u);
+}
+
+document.getElementById('sentenceSpeakBtn').addEventListener('click', () => speakText(inputEl.value.trim()));
 
 // ── Gemini API ────────────────────────────────────────────────────────────────
 
@@ -667,24 +692,65 @@ function looksLikeReading(s) {
 
 function buildAnkiUrl(token) {
   const sentence = inputEl.value.trim();
-  const front = token.surface;
-  let back = '';
-  if (token.reading && token.reading !== token.surface) {
-    const rom = token.romaji || toRomaji(token.reading);
-    back += token.reading + (rom ? ' (' + rom + ')' : '') + '\n';
+  const profile  = localStorage.getItem('anki_profile') || 'User 1';
+  const reading  = (token.reading && token.reading !== token.surface) ? token.reading : '';
+  const romaji   = token.romaji || toRomaji(token.reading || '');
+  const def      = (token.english && !looksLikeReading(token.english)) ? token.english : '';
+
+  // ── Front: large word + reading ────────────────────────────
+  const front = `<div style="text-align:center;padding:20px 0;font-family:-apple-system,sans-serif;">`
+    + `<div style="font-size:3em;font-weight:700;">${token.surface}</div>`
+    + (reading ? `<div style="color:#888;margin-top:10px;font-size:1.1em;">${reading}</div>` : '')
+    + `</div>`;
+
+  // ── Back: reading/romaji, meta, definition, example, audio ─
+  let back = `<div style="font-family:-apple-system,sans-serif;line-height:1.6;padding:4px 0;">`;
+
+  if (reading || romaji) {
+    back += `<div style="color:#888;margin-bottom:4px;">`;
+    if (reading) back += reading;
+    if (romaji)  back += (reading ? ` · ` : '') + `<em>${romaji}</em>`;
+    back += `</div>`;
   }
-  if (token.part_of_speech) back += '[' + token.part_of_speech + ']\n';
-  if (token.english && !looksLikeReading(token.english)) back += token.english + '\n';
-  if (token.notes) back += token.notes + '\n';
-  if (sentence) back += '\nExample: ' + sentence;
-  const profile = localStorage.getItem('anki_profile') || 'User 1';
+
+  const meta = [token.part_of_speech, token.jlpt].filter(Boolean);
+  if (meta.length) {
+    back += `<div style="font-size:0.78em;color:#aaa;text-transform:uppercase;`
+          + `letter-spacing:0.08em;margin-bottom:12px;">${meta.join(' · ')}</div>`;
+  }
+
+  if (def) {
+    back += `<div style="font-size:1.2em;font-weight:600;margin-bottom:10px;">${def}</div>`;
+  }
+
+  if (token.notes) {
+    back += `<div style="font-size:0.88em;color:#999;font-style:italic;margin-bottom:12px;">${token.notes}</div>`;
+  }
+
+  if (sentence) {
+    back += `<div style="border-top:1px solid #444;padding-top:10px;margin-top:4px;">`
+          + `<div style="font-size:0.72em;color:#666;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Example</div>`
+          + `<div style="color:#ccc;">${sentence}</div>`
+          + `</div>`;
+  }
+
+  // Audio button — uses Web Speech API (supported in AnkiMobile WKWebView)
+  const speakTarget = sentence || token.surface;
+  const speakJs = `var u=new SpeechSynthesisUtterance(${JSON.stringify(speakTarget)});u.lang='ja-JP';u.rate=0.85;speechSynthesis.cancel();speechSynthesis.speak(u);`;
+  back += `<div style="margin-top:14px;">`
+        + `<button onclick='${speakJs}' style='background:transparent;border:1px solid #444;`
+        + `border-radius:6px;color:#888;padding:5px 12px;font-size:0.85em;cursor:pointer;'>🔊 Play</button>`
+        + `</div>`;
+
+  back += `</div>`;
+
   const enc = encodeURIComponent;
   return 'anki://x-callback-url/addnote'
     + '?profile=' + enc(profile)
-    + '&type=' + enc('Basic')
-    + '&deck=' + enc('Mining')
-    + '&fldFront=' + enc(front.trim())
-    + '&fldBack=' + enc(back.trim());
+    + '&type='    + enc('Basic')
+    + '&deck='    + enc('Mining')
+    + '&fldFront=' + enc(front)
+    + '&fldBack='  + enc(back);
 }
 
 function jlptBadge(jlpt) {
@@ -701,7 +767,15 @@ function makeWordCard(token) {
 
   const jp = document.createElement('div');
   jp.className = 'wc-jp';
-  jp.textContent = token.surface;
+  const jpWord = document.createElement('div');
+  jpWord.textContent = token.surface;
+  jp.appendChild(jpWord);
+  const speakWordBtn = document.createElement('button');
+  speakWordBtn.className = 'speak-btn';
+  speakWordBtn.textContent = '🔊';
+  speakWordBtn.title = 'Play pronunciation';
+  speakWordBtn.addEventListener('click', e => { e.stopPropagation(); speakText(token.surface); });
+  jp.appendChild(speakWordBtn);
   card.appendChild(jp);
 
   const right = document.createElement('div');
