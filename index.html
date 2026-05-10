@@ -391,9 +391,19 @@
     <h2 style="margin-top:18px">Anki Profile Name</h2>
     <p>Required for the "+ Anki" export button. Open Anki on your device — the profile name is shown on the profile selection screen (default is usually <strong>User 1</strong>).</p>
     <input type="text" id="ankiProfileInput" placeholder="User 1" autocomplete="off" />
-    <p style="margin-top:14px;padding:10px 12px;background:#1a1a10;border:1px solid #3a3a10;border-radius:8px;color:#aaa880;font-size:0.82rem;line-height:1.6;">
-      🔊 <strong style="color:#d4c840;">One-time audio setup:</strong> In AnkiMobile, browse any card → Edit → Cards… → add <code style="background:#2a2a14;padding:1px 5px;border-radius:3px;">{{tts ja_JP:Front}}</code> to the end of the <em>Front Template</em> → Save. Cards will then auto-play Japanese TTS.
-    </p>
+    <div style="margin-top:14px;padding:14px 16px;background:#1a1a10;border:1px solid #3a3a10;border-radius:8px;color:#aaa880;font-size:0.82rem;line-height:1.8;">
+      <div style="color:#d4c840;font-weight:700;margin-bottom:8px;">🔊 One-time audio setup (AnkiMobile)</div>
+      <ol style="padding-left:18px;margin:0;">
+        <li>Open Anki → tap <strong>Browse</strong> (bottom tab)</li>
+        <li>Tap any card → tap the <strong>pencil / edit icon</strong></li>
+        <li>Tap <strong>Cards…</strong> at the top</li>
+        <li>At the end of the <strong>Front Template</strong>, add:<br>
+          <code style="background:#2a2a14;padding:2px 7px;border-radius:3px;font-size:0.95em;display:inline-block;margin-top:4px;">{{tts ja_JP:Front}}</code>
+        </li>
+        <li>Tap <strong>Save</strong></li>
+      </ol>
+      <div style="margin-top:8px;opacity:0.7;font-size:0.78rem;">Cards will auto-play Japanese TTS on the front. Only needs to be done once.</div>
+    </div>
     <div class="modal-btns">
       <button class="btn-ghost" onclick="closeSettings()">Cancel</button>
       <button class="btn-primary" onclick="saveSettings()">Save</button>
