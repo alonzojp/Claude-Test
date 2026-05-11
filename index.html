@@ -752,10 +752,13 @@ function buildAnkiUrl(token) {
   if (token.notes) back += `<div class="ab-note">${token.notes}</div>`;
   if (sentence) {
     const sentRuby = lastFurigana ? furiganaToRuby(lastFurigana) : sentence;
+    // Derive romaji from furigana: strip kanji, keep readings, convert kana → romaji
+    const sentKana   = lastFurigana ? lastFurigana.replace(/[一-龯々〆]+\(([^)]+)\)/g, '$1') : '';
+    const sentRomaji = sentKana ? toRomaji(sentKana) : '';
     back += `<div class="ab-ex">`
           + `<div class="ab-exl">Example</div>`
           + `<div class="ab-ext">${sentRuby}</div>`
-          + (lastRomaji ? `<div style="font-size:0.82em;color:#888;font-style:italic;margin-top:6px;line-height:1.6;">${lastRomaji}</div>` : '')
+          + (sentRomaji ? `<div style="font-size:0.82em;color:#888;font-style:italic;margin-top:6px;line-height:1.6;">${sentRomaji}</div>` : '')
           + `</div>`;
   }
   back += `</div>`;
