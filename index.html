@@ -532,6 +532,8 @@ document.getElementById('sentenceSpeakBtn').addEventListener('click', () => spea
 
 const PROMPT = `Analyze the Japanese sentence below and return ONLY a valid JSON object — no markdown, no explanation.
 
+CRITICAL: Token "reading" values must be the pronunciation as actually spoken in this sentence, not isolated dictionary readings. Use kun-yomi when that is how the word is said in context. Examples: 日 in 〜の日 = ひ not にち; 日 in 日本 = に not にち; 人 in 大人 = と not じん; 今日 = きょう not こんにち.
+
 JSON structure:
 {
   "translation": {
@@ -590,7 +592,7 @@ async function analyzeWithGroq(text, apiKey) {
     body: JSON.stringify({
       model: 'llama-3.3-70b-versatile',
       messages: [
-        { role: 'system', content: 'You are a Japanese language expert. Respond only with valid JSON.' },
+        { role: 'system', content: 'You are a Japanese language expert. Respond only with valid JSON. CRITICAL RULE: every token "reading" field must be the pronunciation as actually spoken in this sentence — never default to on-yomi when kun-yomi is used in context. Example: 日 in メイドの日 = ひ (hi), not にち (nichi). 人 in 大人 = と (to), not じん (jin). Always use context.' },
         { role: 'user',   content: PROMPT + text }
       ],
       temperature: 0.1,
