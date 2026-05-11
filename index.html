@@ -303,6 +303,43 @@
     .wc-note { font-size: 0.8rem; color: #666; line-height: 1.45; margin-top: 4px; font-style: italic; }
     .wc-dict { font-size: 0.75rem; color: #555; margin-top: 3px; }
 
+    /* ── Interactive sentence ───────────────────────────────── */
+    #interactiveSentence {
+      display: flex; flex-wrap: wrap; align-items: flex-end;
+      font-size: 1.45rem; line-height: 2.8; cursor: default;
+      user-select: none; margin-bottom: 4px;
+    }
+    .sent-token {
+      display: inline-flex; align-items: flex-end;
+      padding: 2px 4px; border-radius: 6px; cursor: pointer;
+      transition: background 0.12s; border-bottom: 2px solid transparent;
+    }
+    .sent-token:hover { background: rgba(255,255,255,0.06); }
+    .sent-token.active { background: var(--red-dim); border-bottom-color: var(--red); }
+    .sent-token ruby rt { font-size: 0.42em; color: var(--red); text-align: center; }
+
+    /* ── Focused word card ──────────────────────────────────── */
+    #focusedCard {
+      margin-top: 18px; padding-top: 18px;
+      border-top: 1px solid var(--border2);
+      display: flex; align-items: flex-start; gap: 20px;
+    }
+    .fc-left {
+      display: flex; flex-direction: column; align-items: flex-start;
+      min-width: 80px; flex-shrink: 0; gap: 6px;
+    }
+    .fc-jp   { font-size: 1.7rem; font-weight: 700; color: #fff; line-height: 1; }
+    .fc-right { flex: 1; min-width: 0; }
+    .fc-row1 { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+    .fc-furi { font-size: 0.85rem; color: var(--red); font-weight: 500; }
+    .fc-rom  { font-size: 0.85rem; color: #777; font-style: italic; }
+    .fc-pos  { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .fc-dict { font-size: 0.75rem; color: #555; margin-top: 2px; }
+    .fc-def  { font-size: 0.92rem; color: #bbb; line-height: 1.5; margin-top: 4px; }
+    .fc-note { font-size: 0.8rem; color: #666; font-style: italic; margin-top: 4px; }
+    .fc-btns { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+    .fc-hint { text-align: center; color: #444; font-size: 0.85rem; padding: 14px 0; width: 100%; }
+
     .anki-btn {
       display: inline-flex;
       align-items: center;
@@ -446,8 +483,15 @@
     <div id="readingContent"></div>
   </div>
 
-  <!-- Word breakdown -->
-  <div class="result-panel">
+  <!-- Interactive word lookup (AI mode) -->
+  <div class="result-panel" id="panelInteractive" style="display:none">
+    <div class="lbl">Word lookup — tap any word</div>
+    <div id="interactiveSentence"></div>
+    <div id="focusedCard"><div class="fc-hint">Tap a word above to see its details</div></div>
+  </div>
+
+  <!-- Word breakdown (basic / no-key mode) -->
+  <div class="result-panel" id="panelWords">
     <div class="lbl">Word breakdown</div>
     <div id="wordList"></div>
   </div>
@@ -908,6 +952,108 @@ function makeStructRow(seg) {
   return row;
 }
 
+// ── Interactive sentence ──────────────────────────────────────────────────────
+
+let _activeSpan = null;
+
+function renderInteractiveSentence(tokens) {
+  const container = document.getElementById('interactiveSentence');
+  container.innerHTML = '';
+  _activeSpan = null;
+
+  const kanjiRe = new RegExp('[' + String.fromCodePoint(0x4e00) + '-' + String.fromCodePoint(0x9fff) + ']');
+
+  (tokens || []).forEach(token => {
+    const span = document.createElement('span');
+    span.className = 'sent-token';
+
+    const surface = token.surface || '';
+    const reading = (token.reading && token.reading !== surface) ? token.reading : '';
+
+    if (reading && kanjiRe.test(surface)) {
+      const ruby = document.createElement('ruby');
+      ruby.appendChild(document.createTextNode(surface));
+      const rt = document.createElement('rt');
+      rt.textContent = reading;
+      ruby.appendChild(rt);
+      span.appendChild(ruby);
+    } else {
+      span.textContent = surface;
+    }
+
+    span.addEventListener('click', () => selectToken(token, span));
+    container.appendChild(span);
+  });
+
+  // Reset focused card to hint
+  document.getElementById('focusedCard').innerHTML = '<div class="fc-hint">Tap a word above to see its details</div>';
+}
+
+function selectToken(token, spanEl) {
+  if (_activeSpan) _activeSpan.classList.remove('active');
+  _activeSpan = spanEl;
+  spanEl.classList.add('active');
+
+  const surface = token.surface || '';
+  const reading = (token.reading && token.reading !== surface) ? token.reading : '';
+  const romaji  = token.romaji || toRomaji(token.reading || '');
+  const def     = (token.english && !looksLikeReading(token.english)) ? token.english : '';
+
+  const fc = document.getElementById('focusedCard');
+  fc.innerHTML = '';
+
+  const left  = document.createElement('div'); left.className  = 'fc-left';
+  const right = document.createElement('div'); right.className = 'fc-right';
+
+  // Left: large word + speak button
+  const jpEl = document.createElement('div'); jpEl.className = 'fc-jp'; jpEl.textContent = surface;
+  const spkBtn = document.createElement('button');
+  spkBtn.className = 'speak-btn'; spkBtn.textContent = '🔊';
+  spkBtn.addEventListener('click', e => { e.stopPropagation(); speakText(surface); });
+  left.appendChild(jpEl);
+  left.appendChild(spkBtn);
+
+  // Right: reading · romaji · JLPT
+  const row1 = document.createElement('div'); row1.className = 'fc-row1';
+  if (reading) {
+    const f = document.createElement('span'); f.className='fc-furi'; f.textContent=reading; row1.appendChild(f);
+    const sep = document.createElement('span'); sep.className='wc-sep'; sep.textContent='·'; row1.appendChild(sep);
+  }
+  if (romaji && romaji !== surface) {
+    const r = document.createElement('span'); r.className='fc-rom'; r.textContent=romaji; row1.appendChild(r);
+  }
+  if (token.jlpt) row1.appendChild(jlptBadge(token.jlpt));
+  right.appendChild(row1);
+
+  if (token.part_of_speech) {
+    const p=document.createElement('div'); p.className='fc-pos'; p.textContent=token.part_of_speech; right.appendChild(p);
+  }
+  if (token.dictionary_form && token.dictionary_form !== surface) {
+    const d=document.createElement('div'); d.className='fc-dict'; d.textContent='dict: '+token.dictionary_form; right.appendChild(d);
+  }
+  if (def) {
+    const e=document.createElement('div'); e.className='fc-def'; e.textContent=def; right.appendChild(e);
+  }
+  if (token.notes) {
+    const n=document.createElement('div'); n.className='fc-note'; n.textContent=token.notes; right.appendChild(n);
+  }
+
+  // Anki button
+  const ankiBtn = document.createElement('button');
+  ankiBtn.className = 'anki-btn'; ankiBtn.textContent = '+ Anki';
+  ankiBtn.addEventListener('click', () => {
+    window.location.href = buildAnkiUrl(token);
+    ankiBtn.textContent = 'Sent!'; ankiBtn.classList.add('added');
+    setTimeout(() => { ankiBtn.textContent = '+ Anki'; ankiBtn.classList.remove('added'); }, 2000);
+  });
+  const btns = document.createElement('div'); btns.className = 'fc-btns';
+  btns.appendChild(ankiBtn);
+  right.appendChild(btns);
+
+  fc.appendChild(left);
+  fc.appendChild(right);
+}
+
 // ── Render full AI result ─────────────────────────────────────────────────────
 
 function renderAI(data) {
@@ -945,10 +1091,10 @@ function renderAI(data) {
     document.getElementById('panelReading').style.display = 'block';
   }
 
-  // Word breakdown
-  const wl = document.getElementById('wordList');
-  wl.innerHTML = '';
-  (data.tokens || []).forEach(t => wl.appendChild(makeWordCard(t)));
+  // Interactive sentence (replaces word list in AI mode)
+  renderInteractiveSentence(data.tokens);
+  document.getElementById('panelInteractive').style.display = 'block';
+  document.getElementById('panelWords').style.display = 'none';
 
   // Grammar points
   const gl = document.getElementById('grammarList');
@@ -996,6 +1142,8 @@ function renderAI(data) {
 // ── Render basic (no key) ─────────────────────────────────────────────────────
 
 async function renderBasic(text) {
+  document.getElementById('panelInteractive').style.display = 'none';
+  document.getElementById('panelWords').style.display = 'block';
   const wl = document.getElementById('wordList');
   wl.innerHTML = '';
 
@@ -1032,9 +1180,10 @@ async function doTranslate() {
   btn.disabled = true;
   spinEl.style.display = 'block';
   resultsEl.style.display = 'none';
-  ['panelReading','panelGrammar','panelStructure','panelDifficulty'].forEach(id => {
+  ['panelReading','panelGrammar','panelStructure','panelDifficulty','panelInteractive'].forEach(id => {
     document.getElementById(id).style.display = 'none';
   });
+  document.getElementById('panelWords').style.display = 'block';
   document.getElementById('transContent').innerHTML = '';
   document.getElementById('wordList').innerHTML = '';
   lastNatural      = '';
