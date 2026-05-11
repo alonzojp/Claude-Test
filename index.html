@@ -705,10 +705,11 @@ function looksLikeReading(s) {
 // Katakana/kana readings in parentheses are stripped (パン(ぱん) → パン)
 function furiganaToRuby(text) {
   if (!text) return '';
-  // Kanji + reading → ruby tags
-  let out = text.replace(/([一-龯々〆㐀-䶿]+)\(([^)]+)\)/g, '<ruby>$1<rt>$2</rt></ruby>');
-  // Strip any leftover (reading) for non-kanji characters (katakana, symbols, etc.)
-  out = out.replace(/\(([^)]+)\)/g, '');
+  // Kanji → ruby (handles both ASCII parens and full-width （）)
+  let out = text.replace(/([一-鿿㐀-䶿々〆]+)[(（]([^)）]+)[)）]/g,
+    '<ruby>$1<rt>$2</rt></ruby>');
+  // Strip leftover (reading) / （reading） for non-kanji (katakana etc.)
+  out = out.replace(/[(（][^)）]+[)）]/g, '');
   return out;
 }
 
@@ -764,12 +765,14 @@ function buildAnkiUrl(token) {
     const sentRuby   = rubyHtml.includes('<ruby>') ? rubyHtml : sentence;
 
     // Romaji: use lastRomaji if it has no Japanese chars, else derive from furigana kana
-    const noJp = s => !/[぀-鿿一-鿿]/.test(s);
+    const noJp = s => !/[　-鿿]/.test(s);
     let romaji = '';
     if (lastRomaji && noJp(lastRomaji)) {
       romaji = lastRomaji;
     } else if (lastFurigana) {
-      const kana    = lastFurigana.replace(/[一-鿿㐀-䶿々〆〇]+\(([^)]+)\)/g, '$1');
+      const kana    = lastFurigana
+        .replace(/[一-鿿㐀-䶿々〆]+[(（]([^)）]+)[)）]/g, '$1')
+        .replace(/[一-鿿㐀-䶿々〆]+/g, '');
       const derived = toRomaji(kana);
       if (noJp(derived)) romaji = derived;
     }
