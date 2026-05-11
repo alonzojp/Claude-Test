@@ -477,12 +477,6 @@
     </div>
   </div>
 
-  <!-- Reading -->
-  <div class="result-panel" id="panelReading" style="display:none">
-    <div class="lbl">Reading</div>
-    <div id="readingContent"></div>
-  </div>
-
   <!-- Interactive word lookup (AI mode) -->
   <div class="result-panel" id="panelInteractive" style="display:none">
     <div class="lbl">Word lookup — tap any word</div>
@@ -1069,28 +1063,6 @@ function renderAI(data) {
   const v2=document.createElement('div'); v2.className='trans-text'; v2.textContent=data.translation?.natural||''; r2.appendChild(v2);
   tc.appendChild(r2);
 
-  // Reading
-  if (data.reading) {
-    const rc = document.getElementById('readingContent');
-    rc.innerHTML = '';
-    if (data.reading.furigana) {
-      const f=document.createElement('div'); f.className='reading-row';
-      const ft=document.createElement('div'); ft.className='reading-tag'; ft.textContent='Furigana'; f.appendChild(ft);
-      const fv=document.createElement('div'); fv.className='reading-val';
-      // Use token-based ruby (reliable); fall back to raw sentence if no tokens
-      fv.innerHTML = lastSentenceRuby || inputEl.value;
-      f.appendChild(fv);
-      rc.appendChild(f);
-    }
-    if (data.reading.romaji) {
-      const r=document.createElement('div'); r.className='reading-row';
-      const rt=document.createElement('div'); rt.className='reading-tag'; rt.textContent='Romaji'; r.appendChild(rt);
-      const rv=document.createElement('div'); rv.className='reading-val'; rv.style.fontStyle='italic'; rv.textContent=data.reading.romaji; r.appendChild(rv);
-      rc.appendChild(r);
-    }
-    document.getElementById('panelReading').style.display = 'block';
-  }
-
   // Interactive sentence (replaces word list in AI mode)
   renderInteractiveSentence(data.tokens);
   document.getElementById('panelInteractive').style.display = 'block';
@@ -1180,7 +1152,7 @@ async function doTranslate() {
   btn.disabled = true;
   spinEl.style.display = 'block';
   resultsEl.style.display = 'none';
-  ['panelReading','panelGrammar','panelStructure','panelDifficulty','panelInteractive'].forEach(id => {
+  ['panelGrammar','panelStructure','panelDifficulty','panelInteractive'].forEach(id => {
     document.getElementById(id).style.display = 'none';
   });
   document.getElementById('panelWords').style.display = 'block';
