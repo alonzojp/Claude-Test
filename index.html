@@ -705,11 +705,16 @@ function looksLikeReading(s) {
 // Katakana/kana readings in parentheses are stripped (パン(ぱん) → パン)
 function furiganaToRuby(text) {
   if (!text) return '';
-  // Kanji → ruby (handles both ASCII parens and full-width （）)
-  let out = text.replace(/([一-鿿㐀-䶿々〆]+)[(（]([^)）]+)[)）]/g,
-    '<ruby>$1<rt>$2</rt></ruby>');
-  // Strip leftover (reading) / （reading） for non-kanji (katakana etc.)
-  out = out.replace(/[(（][^)）]+[)）]/g, '');
+  // Build the kanji character class from code points so file encoding never matters
+  const cjk = String.fromCodePoint(0x4e00) + '-' + String.fromCodePoint(0x9fff)
+             + String.fromCodePoint(0x3400) + '-' + String.fromCodePoint(0x4dbf)
+             + String.fromCodePoint(0x3005) + String.fromCodePoint(0x3006);
+  const open  = '[(\\uff08]';   // ( or （
+  const close = '[)\\uff09]';   // ) or ）
+  const rubyRe  = new RegExp('([' + cjk + ']+)' + open + '([^)\\uff09]+)' + close, 'g');
+  const stripRe = new RegExp(open + '[^)\\uff09]+' + close, 'g');
+  let out = text.replace(rubyRe,  '<ruby>$1<rt>$2</rt></ruby>');
+  out     = out.replace(stripRe, '');
   return out;
 }
 
@@ -765,16 +770,19 @@ function buildAnkiUrl(token) {
     const sentRuby   = rubyHtml.includes('<ruby>') ? rubyHtml : sentence;
 
     // Romaji: use lastRomaji if it has no Japanese chars, else derive from furigana kana
-    const noJp = s => !/[　-鿿]/.test(s);
+    const hasJp  = s => /[　-鿿]/.test(s);
     let romaji = '';
-    if (lastRomaji && noJp(lastRomaji)) {
+    if (lastRomaji && !hasJp(lastRomaji)) {
       romaji = lastRomaji;
     } else if (lastFurigana) {
-      const kana    = lastFurigana
-        .replace(/[一-鿿㐀-䶿々〆]+[(（]([^)）]+)[)）]/g, '$1')
-        .replace(/[一-鿿㐀-䶿々〆]+/g, '');
+      const cjk2   = String.fromCodePoint(0x4e00) + '-' + String.fromCodePoint(0x9fff)
+                   + String.fromCodePoint(0x3400) + '-' + String.fromCodePoint(0x4dbf)
+                   + String.fromCodePoint(0x3005) + String.fromCodePoint(0x3006);
+      const kana   = lastFurigana
+        .replace(new RegExp('[' + cjk2 + ']+[(\\uff08]([^)\\uff09]+)[)\\uff09]', 'g'), '$1')
+        .replace(new RegExp('[' + cjk2 + ']+', 'g'), '');
       const derived = toRomaji(kana);
-      if (noJp(derived)) romaji = derived;
+      if (!hasJp(derived)) romaji = derived;
     }
 
     back += `<div class="ab-ex">`
