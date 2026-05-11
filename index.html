@@ -751,11 +751,11 @@ function buildAnkiUrl(token) {
   if (def)         back += `<div class="ab-def">${def}</div>`;
   if (token.notes) back += `<div class="ab-note">${token.notes}</div>`;
   if (sentence) {
-    const sentRuby = lastFurigana ? furiganaToRuby(lastFurigana) : '';
+    const sentRuby = lastFurigana ? furiganaToRuby(lastFurigana) : sentence;
     back += `<div class="ab-ex">`
           + `<div class="ab-exl">Example</div>`
-          + `<div class="ab-ext">${sentRuby || sentence}</div>`
-          + (sentRuby ? `<div style="font-size:0.88em;color:#888;margin-top:6px;line-height:1.6;">${sentence}</div>` : '')
+          + `<div class="ab-ext">${sentRuby}</div>`
+          + (lastRomaji ? `<div style="font-size:0.82em;color:#888;font-style:italic;margin-top:6px;line-height:1.6;">${lastRomaji}</div>` : '')
           + `</div>`;
   }
   back += `</div>`;
@@ -977,6 +977,7 @@ async function renderBasic(text) {
 
 let lastNatural   = '';
 let lastFurigana  = '';
+let lastRomaji    = '';
 
 async function doTranslate() {
   const text = inputEl.value.trim();
@@ -992,14 +993,16 @@ async function doTranslate() {
   document.getElementById('wordList').innerHTML = '';
   lastNatural  = '';
   lastFurigana = '';
+  lastRomaji   = '';
 
   try {
     const apiKey = getKey();
 
     if (apiKey) {
       const data = await analyzeWithGroq(text, apiKey);
-      lastNatural  = data.translation?.natural || '';
-      lastFurigana = data.reading?.furigana   || '';
+      lastNatural  = data.translation?.natural  || '';
+      lastFurigana = data.reading?.furigana    || '';
+      lastRomaji   = data.reading?.romaji      || '';
       renderAI(data);
     } else {
       // No key: basic translation + Jotoba word lookup
