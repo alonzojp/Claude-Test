@@ -340,6 +340,34 @@
     .fc-btns { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
     .fc-hint { text-align: center; color: #444; font-size: 0.85rem; padding: 14px 0; width: 100%; }
 
+    /* ── Mode tabs ──────────────────────────────────────────── */
+    .mode-tabs { display:flex; margin-bottom:14px; border:1px solid var(--border2); border-radius:8px; overflow:hidden; }
+    .mode-tab  { flex:1; padding:8px 0; font-size:0.82rem; font-weight:600; cursor:pointer;
+                 background:transparent; color:var(--muted); border:none; font-family:inherit;
+                 transition:background 0.15s,color 0.15s; }
+    .mode-tab.active { background:var(--red); color:#fff; }
+
+    /* ── Image input ────────────────────────────────────────── */
+    #imageDropZone {
+      display:none; border:2px dashed var(--border2); border-radius:10px;
+      padding:30px 20px; text-align:center; color:var(--muted); font-size:0.88rem;
+      cursor:pointer; transition:border-color 0.15s,background 0.15s;
+      margin-bottom:12px; user-select:none;
+    }
+    #imageDropZone:hover, #imageDropZone.drag-over { border-color:var(--red); background:var(--red-dim); color:var(--text); }
+    #imageDropZone .dz-icon { font-size:2rem; margin-bottom:8px; }
+    #imageDropZone .dz-sub  { font-size:0.74rem; margin-top:5px; opacity:0.5; }
+    #imagePreview {
+      display:none; width:100%; max-height:200px; object-fit:contain;
+      border-radius:8px; margin-bottom:12px; border:1px solid var(--border2); background:var(--bg);
+    }
+    #reExtractBtn {
+      display:none; background:transparent; color:var(--muted);
+      border:1px solid var(--border2); border-radius:8px; padding:10px 14px;
+      font-size:0.88rem; cursor:pointer; transition:color 0.15s,border-color 0.15s;
+    }
+    #reExtractBtn:hover { color:var(--text); border-color:#444; }
+
     .anki-btn {
       display: inline-flex;
       align-items: center;
@@ -448,11 +476,27 @@
 
 <!-- Input panel -->
 <div class="panel">
-  <div class="lbl">Japanese input</div>
+  <div class="mode-tabs">
+    <button class="mode-tab active" id="modeText"  onclick="switchMode('text')">Text</button>
+    <button class="mode-tab"        id="modeImage" onclick="switchMode('image')">📷 Image</button>
+  </div>
+
+  <!-- Image drop zone (image mode only) -->
+  <div id="imageDropZone">
+    <div class="dz-icon">📷</div>
+    <div>Drop an image here, tap to select, or paste with Ctrl+V</div>
+    <div class="dz-sub">JPG · PNG · WebP — manga, screenshots, any Japanese text</div>
+  </div>
+  <input type="file" id="imageFileInput" accept="image/*" style="display:none">
+  <img id="imagePreview" alt="Selected image">
+
+  <!-- Text area (both modes — pre-filled by OCR in image mode) -->
+  <div class="lbl" id="inputLabel">Japanese input</div>
   <textarea id="input" placeholder="日本語のテキストをここに貼り付けてください…" spellcheck="false"></textarea>
   <div class="controls">
     <button id="translateBtn" onclick="doTranslate()">Translate &amp; Analyze</button>
     <button id="clearBtn" onclick="clearAll()">Clear</button>
+    <button id="reExtractBtn" onclick="runImageOcr()">⟳ Re-extract</button>
     <div class="spinner" id="spinner"></div>
   </div>
 </div>
@@ -565,6 +609,103 @@ function speakText(text) {
 }
 
 document.getElementById('sentenceSpeakBtn').addEventListener('click', () => speakText(inputEl.value.trim()));
+
+// ── Image input mode ──────────────────────────────────────────────────────────
+
+let _imageMode = false;
+let _imgBase64 = null;
+let _imgMime   = null;
+
+function switchMode(mode) {
+  _imageMode = mode === 'image';
+  document.getElementById('modeText').classList.toggle('active',  !_imageMode);
+  document.getElementById('modeImage').classList.toggle('active', _imageMode);
+  document.getElementById('imageDropZone').style.display = _imageMode ? 'block' : 'none';
+  document.getElementById('reExtractBtn').style.display  = _imageMode ? 'inline-block' : 'none';
+  document.getElementById('inputLabel').textContent      = _imageMode ? 'Extracted text (edit if needed)' : 'Japanese input';
+  if (!_imageMode) {
+    _imgBase64 = null; _imgMime = null;
+    document.getElementById('imagePreview').style.display = 'none';
+    inputEl.value = '';
+    inputEl.placeholder = '日本語のテキストをここに貼り付けてください…';
+  } else {
+    inputEl.placeholder = 'Extracted text will appear here after image selection…';
+  }
+}
+
+async function handleImageFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    const dataUrl = e.target.result;
+    const preview = document.getElementById('imagePreview');
+    preview.src = dataUrl;
+    preview.style.display = 'block';
+    [, _imgBase64] = dataUrl.split(',');
+    _imgMime = file.type;
+    await runImageOcr();
+  };
+  reader.readAsDataURL(file);
+}
+
+async function runImageOcr() {
+  const apiKey = getKey();
+  if (!apiKey) {
+    alert('A Groq API key is required for image analysis — add one in ⚙ Settings.');
+    return;
+  }
+  if (!_imgBase64) { alert('No image selected.'); return; }
+
+  btn.disabled = true;
+  spinEl.style.display = 'block';
+  inputEl.value = '';
+  inputEl.placeholder = 'Extracting text from image…';
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'llama-3.2-11b-vision-preview',
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image_url', image_url: { url: `data:${_imgMime};base64,${_imgBase64}` } },
+            { type: 'text', text: 'Extract all Japanese text from this image. It may be a manga or comic — text can be vertical (top-to-bottom, right-to-left columns) or horizontal. Output ONLY the raw Japanese text in natural reading order, with each speech bubble or text block on its own line. Do not translate, romanize, or add any explanation.' }
+          ]
+        }],
+        temperature: 0.1,
+        max_tokens: 1024,
+      })
+    });
+    if (!res.ok) throw new Error(`OCR failed: ${res.status}`);
+    const data = await res.json();
+    const extracted = data.choices?.[0]?.message?.content?.trim() || '';
+    inputEl.value = extracted;
+    inputEl.placeholder = 'Edit if needed, then click Translate & Analyze';
+  } catch (err) {
+    inputEl.placeholder = 'Extraction failed — type Japanese text manually';
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+    spinEl.style.display = 'none';
+  }
+}
+
+// Drop zone interactions
+const _dropZone = document.getElementById('imageDropZone');
+_dropZone.addEventListener('click',     ()  => document.getElementById('imageFileInput').click());
+_dropZone.addEventListener('dragover',  e   => { e.preventDefault(); _dropZone.classList.add('drag-over'); });
+_dropZone.addEventListener('dragleave', ()  => _dropZone.classList.remove('drag-over'));
+_dropZone.addEventListener('drop',      e   => { e.preventDefault(); _dropZone.classList.remove('drag-over'); handleImageFile(e.dataTransfer.files[0]); });
+document.getElementById('imageFileInput').addEventListener('change', e => handleImageFile(e.target.files[0]));
+
+// Paste image (Ctrl+V / Cmd+V) anywhere on the page when in image mode
+document.addEventListener('paste', e => {
+  if (!_imageMode) return;
+  const imageItem = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/'));
+  if (imageItem) { e.preventDefault(); handleImageFile(imageItem.getAsFile()); }
+});
 
 // ── Gemini API ────────────────────────────────────────────────────────────────
 
@@ -1205,6 +1346,12 @@ function clearAll() {
   inputEl.value = '';
   resultsEl.style.display = 'none';
   copyBtn.className = 'copy-btn';
+  if (_imageMode) {
+    _imgBase64 = null; _imgMime = null;
+    document.getElementById('imagePreview').style.display = 'none';
+    document.getElementById('imageFileInput').value = '';
+    inputEl.placeholder = 'Extracted text will appear here after image selection…';
+  }
   inputEl.focus();
 }
 
