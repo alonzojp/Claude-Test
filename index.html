@@ -733,7 +733,9 @@ function buildAnkiUrl(token) {
 .ab-note{font-size:0.88em;color:#888;font-style:italic;text-align:center;margin-bottom:18px;}
 .ab-ex{border-left:3px solid #7986cb;padding:10px 14px;margin-top:8px;}
 .ab-exl{font-size:0.65em;color:#888;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:8px;font-weight:600;}
-.ab-ext{font-size:1.05em;line-height:1.65;}
+.ab-ext{font-size:1.05em;line-height:2.2;}
+.ab-ext ruby rt{font-size:0.5em;text-align:center;display:block;}
+.ab-rom{font-size:0.82em;color:#888;font-style:italic;margin-top:8px;line-height:1.6;}
 @media(prefers-color-scheme:dark){.af-w,.ab-def,.ab-ext{color:#eeeeee;}}
 .night_mode .af-w,.night_mode .ab-def,.night_mode .ab-ext{color:#eeeeee;}
 </style>`;
@@ -752,13 +754,25 @@ function buildAnkiUrl(token) {
   if (def)         back += `<div class="ab-def">${def}</div>`;
   if (token.notes) back += `<div class="ab-note">${token.notes}</div>`;
   if (sentence) {
-    const sentRuby   = lastFurigana ? furiganaToRuby(lastFurigana) : sentence;
-    // Use the romaji already shown on the site; skip it if it contains Japanese characters
-    const romajiOk   = lastRomaji && !/[　-鿿぀-ヿ]/.test(lastRomaji);
+    // Ruby sentence: convert furigana format → <ruby> tags; fall back to plain sentence
+    const rubyHtml   = lastFurigana ? furiganaToRuby(lastFurigana) : '';
+    const sentRuby   = rubyHtml.includes('<ruby>') ? rubyHtml : sentence;
+
+    // Romaji: use lastRomaji if it has no Japanese chars, else derive from furigana kana
+    const noJp = s => !/[぀-鿿一-鿿]/.test(s);
+    let romaji = '';
+    if (lastRomaji && noJp(lastRomaji)) {
+      romaji = lastRomaji;
+    } else if (lastFurigana) {
+      const kana    = lastFurigana.replace(/[一-鿿㐀-䶿々〆〇]+\(([^)]+)\)/g, '$1');
+      const derived = toRomaji(kana);
+      if (noJp(derived)) romaji = derived;
+    }
+
     back += `<div class="ab-ex">`
           + `<div class="ab-exl">Example</div>`
           + `<div class="ab-ext">${sentRuby}</div>`
-          + (romajiOk ? `<div style="font-size:0.82em;color:#888;font-style:italic;margin-top:6px;line-height:1.6;">${lastRomaji}</div>` : '')
+          + (romaji ? `<div class="ab-rom">${romaji}</div>` : '')
           + `</div>`;
   }
   back += `</div>`;
