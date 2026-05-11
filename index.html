@@ -921,7 +921,11 @@ function renderAI(data) {
     if (data.reading.furigana) {
       const f=document.createElement('div'); f.className='reading-row';
       const ft=document.createElement('div'); ft.className='reading-tag'; ft.textContent='Furigana'; f.appendChild(ft);
-      const fv=document.createElement('div'); fv.className='reading-val'; fv.innerHTML=furiganaToRuby(data.reading.furigana); f.appendChild(fv);
+      const fv=document.createElement('div'); fv.className='reading-val';
+      const _ruby = furiganaToRuby(data.reading.furigana);
+      // If the AI returned pure kana (no kanji+reading pairs), show the original sentence so kanji are always visible
+      fv.innerHTML = _ruby.includes('<ruby>') ? _ruby : inputEl.value;
+      f.appendChild(fv);
       rc.appendChild(f);
     }
     if (data.reading.romaji) {
