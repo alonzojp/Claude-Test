@@ -702,9 +702,14 @@ function looksLikeReading(s) {
 }
 
 // Converts "食(た)べる" API format → <ruby>食<rt>た</rt></ruby>べる
+// Katakana/kana readings in parentheses are stripped (パン(ぱん) → パン)
 function furiganaToRuby(text) {
   if (!text) return '';
-  return text.replace(/([一-龯々〆]+)\(([^)]+)\)/g, '<ruby>$1<rt>$2</rt></ruby>');
+  // Kanji + reading → ruby tags
+  let out = text.replace(/([一-龯々〆㐀-䶿]+)\(([^)]+)\)/g, '<ruby>$1<rt>$2</rt></ruby>');
+  // Strip any leftover (reading) for non-kanji characters (katakana, symbols, etc.)
+  out = out.replace(/\(([^)]+)\)/g, '');
+  return out;
 }
 
 function buildAnkiUrl(token) {
@@ -733,8 +738,8 @@ function buildAnkiUrl(token) {
 .ab-note{font-size:0.88em;color:#888;font-style:italic;text-align:center;margin-bottom:18px;}
 .ab-ex{border-left:3px solid #7986cb;padding:10px 14px;margin-top:8px;}
 .ab-exl{font-size:0.65em;color:#888;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:8px;font-weight:600;}
-.ab-ext{font-size:1.05em;line-height:2.2;}
-.ab-ext ruby rt{font-size:0.5em;text-align:center;display:block;}
+.ab-ext{font-size:1.05em;line-height:2.4;}
+.ab-ext rt{font-size:0.5em;text-align:center;}
 .ab-rom{font-size:0.82em;color:#888;font-style:italic;margin-top:8px;line-height:1.6;}
 @media(prefers-color-scheme:dark){.af-w,.ab-def,.ab-ext{color:#eeeeee;}}
 .night_mode .af-w,.night_mode .ab-def,.night_mode .ab-ext{color:#eeeeee;}
