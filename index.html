@@ -250,7 +250,8 @@
     .reading-row { margin-bottom: 8px; }
     .reading-row .reading-tag { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em;
                                 text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
-    .reading-row .reading-val { font-size: 0.95rem; color: #ccc; line-height: 1.7; }
+    .reading-row .reading-val { font-size: 0.95rem; color: #ccc; line-height: 2; }
+    .reading-val ruby rt { font-size: 0.5em; color: var(--red); }
 
     /* Word cards */
     #wordList { display: flex; flex-direction: column; gap: 10px; }
@@ -751,16 +752,13 @@ function buildAnkiUrl(token) {
   if (def)         back += `<div class="ab-def">${def}</div>`;
   if (token.notes) back += `<div class="ab-note">${token.notes}</div>`;
   if (sentence) {
-    const sentRuby = lastFurigana ? furiganaToRuby(lastFurigana) : sentence;
-    // Strip kanji from furigana format → pure kana → romaji
-    const sentKana = lastFurigana ? lastFurigana.replace(/[一-龯々〆]+\(([^)]+)\)/g, '$1') : '';
-    const raw      = sentKana ? toRomaji(sentKana) : '';
-    // Only use it if the result contains no Japanese characters (toRomaji passes kanji through)
-    const sentRomaji = /[　-鿿]/.test(raw) ? '' : raw;
+    const sentRuby   = lastFurigana ? furiganaToRuby(lastFurigana) : sentence;
+    // Use the romaji already shown on the site; skip it if it contains Japanese characters
+    const romajiOk   = lastRomaji && !/[　-鿿぀-ヿ]/.test(lastRomaji);
     back += `<div class="ab-ex">`
           + `<div class="ab-exl">Example</div>`
           + `<div class="ab-ext">${sentRuby}</div>`
-          + (sentRomaji ? `<div style="font-size:0.82em;color:#888;font-style:italic;margin-top:6px;line-height:1.6;">${sentRomaji}</div>` : '')
+          + (romajiOk ? `<div style="font-size:0.82em;color:#888;font-style:italic;margin-top:6px;line-height:1.6;">${lastRomaji}</div>` : '')
           + `</div>`;
   }
   back += `</div>`;
@@ -893,7 +891,7 @@ function renderAI(data) {
     if (data.reading.furigana) {
       const f=document.createElement('div'); f.className='reading-row';
       const ft=document.createElement('div'); ft.className='reading-tag'; ft.textContent='Furigana'; f.appendChild(ft);
-      const fv=document.createElement('div'); fv.className='reading-val'; fv.textContent=data.reading.furigana; f.appendChild(fv);
+      const fv=document.createElement('div'); fv.className='reading-val'; fv.innerHTML=furiganaToRuby(data.reading.furigana); f.appendChild(fv);
       rc.appendChild(f);
     }
     if (data.reading.romaji) {
