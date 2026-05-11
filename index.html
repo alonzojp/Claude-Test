@@ -701,6 +701,21 @@ function looksLikeReading(s) {
   return /^[぀-ゟ゠-ヿ\s・ー]+$/.test((s || '').trim());
 }
 
+// Build ruby HTML from the tokens array — more reliable than parsing the AI's furigana string
+function buildRubyFromTokens(tokens) {
+  const kanjiRe = new RegExp('[' +
+    String.fromCodePoint(0x4e00) + '-' + String.fromCodePoint(0x9fff) +
+    String.fromCodePoint(0x3400) + '-' + String.fromCodePoint(0x4dbf) + ']');
+  return (tokens || []).map(t => {
+    const s = t.surface || '';
+    const r = t.reading || '';
+    if (kanjiRe.test(s) && r && r !== s) {
+      return '<ruby>' + s + '<rt>' + r + '</rt></ruby>';
+    }
+    return s;
+  }).join('');
+}
+
 // Converts "食(た)べる" API format → <ruby>食<rt>た</rt></ruby>べる
 // Katakana/kana readings in parentheses are stripped (パン(ぱん) → パン)
 function furiganaToRuby(text) {
@@ -737,60 +752,52 @@ function buildAnkiUrl(token) {
 .af{text-align:center;padding:44px 20px 32px;}
 .af-w{font-size:3.6em;font-weight:700;line-height:1.1;letter-spacing:0.02em;}
 .ab{max-width:500px;margin:0 auto;padding:20px 16px;}
-.ab-r{text-align:center;color:#888;font-size:1.05em;margin-bottom:10px;}
-.ab-bdg{text-align:center;margin-bottom:18px;}
-.ab-hr{border:none;border-top:1px solid currentColor;opacity:0.15;margin:0 0 20px;}
-.ab-def{font-size:1.55em;font-weight:600;text-align:center;margin-bottom:12px;line-height:1.3;}
-.ab-note{font-size:0.88em;color:#888;font-style:italic;text-align:center;margin-bottom:18px;}
+.ab-word{font-size:2em;font-weight:700;text-align:center;margin-bottom:6px;line-height:2.4;}
+.ab-word rt{font-size:0.4em;text-align:center;}
+.ab-bdg{text-align:center;margin-bottom:14px;}
+.ab-def{font-size:1.55em;font-weight:600;text-align:center;margin-bottom:8px;line-height:1.3;}
+.ab-note{font-size:0.88em;color:#888;font-style:italic;text-align:center;margin-bottom:14px;}
+.ab-hr{border:none;border-top:1px solid currentColor;opacity:0.15;margin:0 0 16px;}
 .ab-ex{border-left:3px solid #7986cb;padding:10px 14px;margin-top:8px;}
 .ab-exl{font-size:0.65em;color:#888;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:8px;font-weight:600;}
 .ab-ext{font-size:1.05em;line-height:2.4;}
 .ab-ext rt{font-size:0.5em;text-align:center;}
-.ab-rom{font-size:0.82em;color:#888;font-style:italic;margin-top:8px;line-height:1.6;}
-@media(prefers-color-scheme:dark){.af-w,.ab-def,.ab-ext{color:#eeeeee;}}
-.night_mode .af-w,.night_mode .ab-def,.night_mode .ab-ext{color:#eeeeee;}
+.ab-en{font-size:0.88em;color:#888;font-style:italic;margin-top:8px;line-height:1.5;}
+@media(prefers-color-scheme:dark){.af-w,.ab-word,.ab-def,.ab-ext{color:#eeeeee;}}
+.night_mode .af-w,.night_mode .ab-word,.night_mode .ab-def,.night_mode .ab-ext{color:#eeeeee;}
 </style>`;
 
   const front = css + `<div class="af"><div class="af-w">${token.surface}</div></div>`;
 
+  // Word with furigana for the back card
+  const kanjiRe2 = new RegExp('[' + String.fromCodePoint(0x4e00) + '-' + String.fromCodePoint(0x9fff) + ']');
+  const wordRuby = (reading && kanjiRe2.test(token.surface))
+    ? `<ruby>${token.surface}<rt>${reading}</rt></ruby>`
+    : token.surface;
+
   let back = css + `<div class="ab">`;
-  if (reading || romaji) {
-    back += `<div class="ab-r">${reading}`;
-    if (romaji) back += (reading ? `<span style="margin:0 7px;opacity:0.35;">·</span>` : '')
-                      + `<em style="font-style:italic;opacity:0.7;">${romaji}</em>`;
-    back += `</div>`;
-  }
+
+  // 1. Word with furigana
+  back += `<div class="ab-word">${wordRuby}</div>`;
+
+  // 2. Badges
   if (posBadge || jlptBadge) back += `<div class="ab-bdg">${posBadge}${jlptBadge}</div>`;
-  back += `<hr class="ab-hr">`;
+
+  // 3. Definition
   if (def)         back += `<div class="ab-def">${def}</div>`;
   if (token.notes) back += `<div class="ab-note">${token.notes}</div>`;
+
+  // 4. Sentence with furigana + English meaning
   if (sentence) {
-    // Ruby sentence: convert furigana format → <ruby> tags; fall back to plain sentence
-    const rubyHtml   = lastFurigana ? furiganaToRuby(lastFurigana) : '';
-    const sentRuby   = rubyHtml.includes('<ruby>') ? rubyHtml : sentence;
-
-    // Romaji: use lastRomaji if it has no Japanese chars, else derive from furigana kana
-    const hasJp  = s => /[　-鿿]/.test(s);
-    let romaji = '';
-    if (lastRomaji && !hasJp(lastRomaji)) {
-      romaji = lastRomaji;
-    } else if (lastFurigana) {
-      const cjk2   = String.fromCodePoint(0x4e00) + '-' + String.fromCodePoint(0x9fff)
-                   + String.fromCodePoint(0x3400) + '-' + String.fromCodePoint(0x4dbf)
-                   + String.fromCodePoint(0x3005) + String.fromCodePoint(0x3006);
-      const kana   = lastFurigana
-        .replace(new RegExp('[' + cjk2 + ']+[(\\uff08]([^)\\uff09]+)[)\\uff09]', 'g'), '$1')
-        .replace(new RegExp('[' + cjk2 + ']+', 'g'), '');
-      const derived = toRomaji(kana);
-      if (!hasJp(derived)) romaji = derived;
-    }
-
-    back += `<div class="ab-ex">`
+    const sentRuby = lastSentenceRuby || sentence;
+    back += `<hr class="ab-hr">`
+          + `<div class="ab-ex">`
           + `<div class="ab-exl">Example</div>`
           + `<div class="ab-ext">${sentRuby}</div>`
-          + (romaji ? `<div class="ab-rom">${romaji}</div>` : '')
+          + (lastNatural ? `<div class="ab-en">${lastNatural}</div>` : '')
           + `</div>`;
   }
+
   back += `</div>`;
 
   const enc = encodeURIComponent;
@@ -922,9 +929,8 @@ function renderAI(data) {
       const f=document.createElement('div'); f.className='reading-row';
       const ft=document.createElement('div'); ft.className='reading-tag'; ft.textContent='Furigana'; f.appendChild(ft);
       const fv=document.createElement('div'); fv.className='reading-val';
-      const _ruby = furiganaToRuby(data.reading.furigana);
-      // If the AI returned pure kana (no kanji+reading pairs), show the original sentence so kanji are always visible
-      fv.innerHTML = _ruby.includes('<ruby>') ? _ruby : inputEl.value;
+      // Use token-based ruby (reliable); fall back to raw sentence if no tokens
+      fv.innerHTML = lastSentenceRuby || inputEl.value;
       f.appendChild(fv);
       rc.appendChild(f);
     }
@@ -1012,9 +1018,10 @@ async function renderBasic(text) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-let lastNatural   = '';
-let lastFurigana  = '';
-let lastRomaji    = '';
+let lastNatural      = '';
+let lastFurigana     = '';
+let lastRomaji       = '';
+let lastSentenceRuby = '';
 
 async function doTranslate() {
   const text = inputEl.value.trim();
@@ -1028,18 +1035,20 @@ async function doTranslate() {
   });
   document.getElementById('transContent').innerHTML = '';
   document.getElementById('wordList').innerHTML = '';
-  lastNatural  = '';
-  lastFurigana = '';
-  lastRomaji   = '';
+  lastNatural      = '';
+  lastFurigana     = '';
+  lastRomaji       = '';
+  lastSentenceRuby = '';
 
   try {
     const apiKey = getKey();
 
     if (apiKey) {
       const data = await analyzeWithGroq(text, apiKey);
-      lastNatural  = data.translation?.natural  || '';
-      lastFurigana = data.reading?.furigana    || '';
-      lastRomaji   = data.reading?.romaji      || '';
+      lastNatural      = data.translation?.natural || '';
+      lastFurigana     = data.reading?.furigana   || '';
+      lastRomaji       = data.reading?.romaji     || '';
+      lastSentenceRuby = buildRubyFromTokens(data.tokens);
       renderAI(data);
     } else {
       // No key: basic translation + Jotoba word lookup
