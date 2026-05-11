@@ -700,6 +700,12 @@ function looksLikeReading(s) {
   return /^[぀-ゟ゠-ヿ\s・ー]+$/.test((s || '').trim());
 }
 
+// Converts "食(た)べる" API format → <ruby>食<rt>た</rt></ruby>べる
+function furiganaToRuby(text) {
+  if (!text) return '';
+  return text.replace(/([一-龯々〆]+)\(([^)]+)\)/g, '<ruby>$1<rt>$2</rt></ruby>');
+}
+
 function buildAnkiUrl(token) {
   const sentence = inputEl.value.trim();
   const profile  = localStorage.getItem('anki_profile') || 'User 1';
@@ -744,7 +750,14 @@ function buildAnkiUrl(token) {
   back += `<hr class="ab-hr">`;
   if (def)         back += `<div class="ab-def">${def}</div>`;
   if (token.notes) back += `<div class="ab-note">${token.notes}</div>`;
-  if (sentence)    back += `<div class="ab-ex"><div class="ab-exl">Example</div><div class="ab-ext">${sentence}</div></div>`;
+  if (sentence) {
+    const sentRuby = lastFurigana ? furiganaToRuby(lastFurigana) : '';
+    back += `<div class="ab-ex">`
+          + `<div class="ab-exl">Example</div>`
+          + `<div class="ab-ext">${sentRuby || sentence}</div>`
+          + (sentRuby ? `<div style="font-size:0.88em;color:#888;margin-top:6px;line-height:1.6;">${sentence}</div>` : '')
+          + `</div>`;
+  }
   back += `</div>`;
 
   const enc = encodeURIComponent;
@@ -962,7 +975,8 @@ async function renderBasic(text) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-let lastNatural = '';
+let lastNatural   = '';
+let lastFurigana  = '';
 
 async function doTranslate() {
   const text = inputEl.value.trim();
@@ -976,14 +990,16 @@ async function doTranslate() {
   });
   document.getElementById('transContent').innerHTML = '';
   document.getElementById('wordList').innerHTML = '';
-  lastNatural = '';
+  lastNatural  = '';
+  lastFurigana = '';
 
   try {
     const apiKey = getKey();
 
     if (apiKey) {
       const data = await analyzeWithGroq(text, apiKey);
-      lastNatural = data.translation?.natural || '';
+      lastNatural  = data.translation?.natural || '';
+      lastFurigana = data.reading?.furigana   || '';
       renderAI(data);
     } else {
       // No key: basic translation + Jotoba word lookup
