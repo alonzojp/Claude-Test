@@ -96,6 +96,16 @@
       font-family: monospace;
     }
     .modal input:focus { border-color: var(--red); }
+    .modal input[type="text"] { font-family: inherit; }
+
+    .field-lbl {
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--muted); margin-bottom: 3px; margin-top: 8px;
+    }
+    .field-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px;
+    }
+    .field-grid input { margin-bottom: 0; }
 
     .modal-btns { display: flex; gap: 10px; justify-content: flex-end; }
 
@@ -388,21 +398,30 @@
       (just an email, no credit card needed). Your key stays in your browser only — it is never sent anywhere except Groq's API.
     </p>
     <input type="password" id="keyInput" placeholder="AIzaSy..." autocomplete="off" />
-    <h2 style="margin-top:18px">Anki Profile Name</h2>
-    <p>Required for the "+ Anki" export button. Open Anki on your device — the profile name is shown on the profile selection screen (default is usually <strong>User 1</strong>).</p>
+    <h2 style="margin-top:18px">Anki Settings</h2>
+    <p>Match the profile and note type you use in AnkiMobile. If you have a mining note type (with dedicated Word, Sentence fields), enter its name and field names below — cards will be exported directly into it and audio will work via that note type's template.</p>
+    <div class="field-lbl">Profile name</div>
     <input type="text" id="ankiProfileInput" placeholder="User 1" autocomplete="off" />
-    <div style="margin-top:14px;padding:14px 16px;background:#1a1a10;border:1px solid #3a3a10;border-radius:8px;color:#aaa880;font-size:0.82rem;line-height:1.8;">
-      <div style="color:#d4c840;font-weight:700;margin-bottom:8px;">🔊 One-time audio setup (AnkiMobile)</div>
-      <ol style="padding-left:18px;margin:0;">
-        <li>Open Anki → tap <strong>Browse</strong> (bottom tab)</li>
-        <li>Tap any card → tap the <strong>pencil / edit icon</strong></li>
-        <li>Tap <strong>Cards…</strong> at the top</li>
-        <li>At the end of the <strong>Front Template</strong>, add:<br>
-          <code style="background:#2a2a14;padding:2px 7px;border-radius:3px;font-size:0.95em;display:inline-block;margin-top:4px;">{{tts ja_JP:Front}}</code>
-        </li>
-        <li>Tap <strong>Save</strong></li>
-      </ol>
-      <div style="margin-top:8px;opacity:0.7;font-size:0.78rem;">Cards will auto-play Japanese TTS on the front. Only needs to be done once.</div>
+    <div class="field-lbl">Note type <span style="font-weight:400;text-transform:none;letter-spacing:0;">(default: Basic)</span></div>
+    <input type="text" id="ankiTypeInput" placeholder="Basic" autocomplete="off" />
+    <div class="field-lbl" style="margin-top:12px;">Field names — leave blank to skip that field</div>
+    <div class="field-grid">
+      <div>
+        <div class="field-lbl">Word</div>
+        <input type="text" id="ankiFldWord" placeholder="Front" autocomplete="off" />
+      </div>
+      <div>
+        <div class="field-lbl">Reading</div>
+        <input type="text" id="ankiFldReading" placeholder="(skip)" autocomplete="off" />
+      </div>
+      <div>
+        <div class="field-lbl">Meaning</div>
+        <input type="text" id="ankiFldMeaning" placeholder="Back" autocomplete="off" />
+      </div>
+      <div>
+        <div class="field-lbl">Sentence</div>
+        <input type="text" id="ankiFldSentence" placeholder="(skip)" autocomplete="off" />
+      </div>
     </div>
     <div class="modal-btns">
       <button class="btn-ghost" onclick="closeSettings()">Cancel</button>
@@ -487,17 +506,31 @@ function getKey() {
     || (BUILT_IN_KEY.startsWith('__') ? '' : BUILT_IN_KEY);
 }
 function saveSettings() {
-  const k = document.getElementById('keyInput').value.trim();
-  if (k) localStorage.setItem('groq_api_key', k);
-  const p = document.getElementById('ankiProfileInput').value.trim();
-  if (p) localStorage.setItem('anki_profile', p);
+  const pairs = [
+    ['groq_api_key',   'keyInput'],
+    ['anki_profile',   'ankiProfileInput'],
+    ['anki_note_type', 'ankiTypeInput'],
+    ['anki_fld_word',  'ankiFldWord'],
+    ['anki_fld_reading','ankiFldReading'],
+    ['anki_fld_meaning','ankiFldMeaning'],
+    ['anki_fld_sentence','ankiFldSentence'],
+  ];
+  pairs.forEach(([key, id]) => {
+    const v = document.getElementById(id).value.trim();
+    if (v) localStorage.setItem(key, v); else localStorage.removeItem(key);
+  });
   closeSettings();
   updateBanner();
 }
 function saveKey() { saveSettings(); }
 function openSettings() {
-  document.getElementById('keyInput').value = localStorage.getItem('groq_api_key') || '';
-  document.getElementById('ankiProfileInput').value = localStorage.getItem('anki_profile') || '';
+  document.getElementById('keyInput').value          = localStorage.getItem('groq_api_key') || '';
+  document.getElementById('ankiProfileInput').value  = localStorage.getItem('anki_profile') || '';
+  document.getElementById('ankiTypeInput').value     = localStorage.getItem('anki_note_type') || '';
+  document.getElementById('ankiFldWord').value       = localStorage.getItem('anki_fld_word') || '';
+  document.getElementById('ankiFldReading').value    = localStorage.getItem('anki_fld_reading') || '';
+  document.getElementById('ankiFldMeaning').value    = localStorage.getItem('anki_fld_meaning') || '';
+  document.getElementById('ankiFldSentence').value   = localStorage.getItem('anki_fld_sentence') || '';
   document.getElementById('settingsOverlay').classList.add('open');
 }
 function closeSettings() { document.getElementById('settingsOverlay').classList.remove('open'); }
@@ -704,22 +737,45 @@ function looksLikeReading(s) {
 }
 
 function buildAnkiUrl(token) {
-  const sentence = inputEl.value.trim();
-  const profile  = localStorage.getItem('anki_profile') || 'User 1';
-  const reading  = (token.reading && token.reading !== token.surface) ? token.reading : '';
-  const romaji   = token.romaji || toRomaji(token.reading || '');
-  const def      = (token.english && !looksLikeReading(token.english)) ? token.english : '';
+  const sentence  = inputEl.value.trim();
+  const profile   = localStorage.getItem('anki_profile')    || 'User 1';
+  const noteType  = localStorage.getItem('anki_note_type')  || 'Basic';
+  const fldWord   = localStorage.getItem('anki_fld_word')   || '';
+  const fldRead   = localStorage.getItem('anki_fld_reading')|| '';
+  const fldMean   = localStorage.getItem('anki_fld_meaning')|| '';
+  const fldSent   = localStorage.getItem('anki_fld_sentence')|| '';
+  const useCustom = !!(fldWord || fldRead || fldMean || fldSent || noteType !== 'Basic');
 
-  // Outline badges — border+color only so they're readable on both light and dark
-  const jlptColor = {N5:'#5cb85c',N4:'#5bc0de',N3:'#7986cb',N2:'#ba68c8',N1:'#e05252'};
-  const b = 'border-radius:4px;padding:2px 10px;font-size:0.72em;font-weight:700;letter-spacing:0.07em;margin:0 3px;';
-  const jlptBadge = token.jlpt
-    ? `<span style="${b}border:1.5px solid ${jlptColor[token.jlpt]||'#888'};color:${jlptColor[token.jlpt]||'#888'};">${token.jlpt}</span>` : '';
-  const posBadge  = token.part_of_speech
-    ? `<span style="${b}border:1.5px solid #7986cb;color:#7986cb;text-transform:uppercase;letter-spacing:0.1em;">${token.part_of_speech}</span>` : '';
+  const reading = (token.reading && token.reading !== token.surface) ? token.reading : '';
+  const romaji  = token.romaji || toRomaji(token.reading || '');
+  const def     = (token.english && !looksLikeReading(token.english)) ? token.english : '';
 
-  // Shared CSS injected once per field; @media dark + .night_mode covers iOS and desktop Anki
-  const sharedCss = `<style>
+  const enc = encodeURIComponent;
+  let url = 'anki://x-callback-url/addnote'
+    + '?profile=' + enc(profile)
+    + '&type='    + enc(noteType)
+    + '&deck='    + enc('Mining');
+
+  if (useCustom) {
+    // ── Custom note type: send plain text to each mapped field ──────────────
+    // Field names from settings; fall back to sensible defaults if blank
+    const wf = fldWord    || 'Word';
+    const mf = fldMean    || 'Meaning';
+    url += '&fld' + enc(wf) + '=' + enc(token.surface);
+    if (reading && fldRead)   url += '&fld' + enc(fldRead) + '=' + enc(reading);
+    if (def)                  url += '&fld' + enc(mf)      + '=' + enc(def);
+    if (sentence && fldSent)  url += '&fld' + enc(fldSent) + '=' + enc(sentence);
+
+  } else {
+    // ── Basic fallback: formatted HTML front/back ───────────────────────────
+    const jlptColor = {N5:'#5cb85c',N4:'#5bc0de',N3:'#7986cb',N2:'#ba68c8',N1:'#e05252'};
+    const bs = 'border-radius:4px;padding:2px 10px;font-size:0.72em;font-weight:700;letter-spacing:0.07em;margin:0 3px;';
+    const jlptBadge = token.jlpt
+      ? `<span style="${bs}border:1.5px solid ${jlptColor[token.jlpt]||'#888'};color:${jlptColor[token.jlpt]||'#888'};">${token.jlpt}</span>` : '';
+    const posBadge  = token.part_of_speech
+      ? `<span style="${bs}border:1.5px solid #7986cb;color:#7986cb;text-transform:uppercase;letter-spacing:0.1em;">${token.part_of_speech}</span>` : '';
+
+    const css = `<style>
 .af,.ab{font-family:-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;}
 .af{text-align:center;padding:44px 20px 32px;}
 .af-w{font-size:3.6em;font-weight:700;line-height:1.1;letter-spacing:0.02em;}
@@ -736,46 +792,26 @@ function buildAnkiUrl(token) {
 .night_mode .af-w,.night_mode .ab-def,.night_mode .ab-ext{color:#eeeeee;}
 </style>`;
 
-  // ── Front: surface form only — no furigana (reader must recognise kanji) ──
-  const front = sharedCss
-    + `<div class="af"><div class="af-w">${token.surface}</div></div>`;
+    const front = css + `<div class="af"><div class="af-w">${token.surface}</div></div>`;
 
-  // ── Back: reading, meta badges, definition, notes, example ──
-  let back = sharedCss + `<div class="ab">`;
-
-  if (reading || romaji) {
-    back += `<div class="ab-r">`;
-    if (reading) back += reading;
-    if (romaji)  back += (reading ? `<span style="margin:0 7px;opacity:0.35;">·</span>` : '')
-                       + `<em style="font-style:italic;opacity:0.7;">${romaji}</em>`;
+    let back = css + `<div class="ab">`;
+    if (reading || romaji) {
+      back += `<div class="ab-r">${reading}`;
+      if (romaji) back += (reading ? `<span style="margin:0 7px;opacity:0.35;">·</span>` : '')
+                        + `<em style="font-style:italic;opacity:0.7;">${romaji}</em>`;
+      back += `</div>`;
+    }
+    if (posBadge || jlptBadge) back += `<div class="ab-bdg">${posBadge}${jlptBadge}</div>`;
+    back += `<hr class="ab-hr">`;
+    if (def)         back += `<div class="ab-def">${def}</div>`;
+    if (token.notes) back += `<div class="ab-note">${token.notes}</div>`;
+    if (sentence)    back += `<div class="ab-ex"><div class="ab-exl">Example</div><div class="ab-ext">${sentence}</div></div>`;
     back += `</div>`;
+
+    url += '&fldFront=' + enc(front) + '&fldBack=' + enc(back);
   }
 
-  if (posBadge || jlptBadge) {
-    back += `<div class="ab-bdg">${posBadge}${jlptBadge}</div>`;
-  }
-
-  back += `<hr class="ab-hr">`;
-
-  if (def)          back += `<div class="ab-def">${def}</div>`;
-  if (token.notes)  back += `<div class="ab-note">${token.notes}</div>`;
-
-  if (sentence) {
-    back += `<div class="ab-ex">`
-          + `<div class="ab-exl">Example</div>`
-          + `<div class="ab-ext">${sentence}</div>`
-          + `</div>`;
-  }
-
-  back += `</div>`;
-
-  const enc = encodeURIComponent;
-  return 'anki://x-callback-url/addnote'
-    + '?profile=' + enc(profile)
-    + '&type='    + enc('Basic')
-    + '&deck='    + enc('Mining')
-    + '&fldFront=' + enc(front)
-    + '&fldBack='  + enc(back);
+  return url;
 }
 
 function jlptBadge(jlpt) {
