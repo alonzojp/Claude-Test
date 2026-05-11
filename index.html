@@ -752,9 +752,11 @@ function buildAnkiUrl(token) {
   if (token.notes) back += `<div class="ab-note">${token.notes}</div>`;
   if (sentence) {
     const sentRuby = lastFurigana ? furiganaToRuby(lastFurigana) : sentence;
-    // Derive romaji from furigana: strip kanji, keep readings, convert kana → romaji
-    const sentKana   = lastFurigana ? lastFurigana.replace(/[一-龯々〆]+\(([^)]+)\)/g, '$1') : '';
-    const sentRomaji = sentKana ? toRomaji(sentKana) : '';
+    // Strip kanji from furigana format → pure kana → romaji
+    const sentKana = lastFurigana ? lastFurigana.replace(/[一-龯々〆]+\(([^)]+)\)/g, '$1') : '';
+    const raw      = sentKana ? toRomaji(sentKana) : '';
+    // Only use it if the result contains no Japanese characters (toRomaji passes kanji through)
+    const sentRomaji = /[　-鿿]/.test(raw) ? '' : raw;
     back += `<div class="ab-ex">`
           + `<div class="ab-exl">Example</div>`
           + `<div class="ab-ext">${sentRuby}</div>`
