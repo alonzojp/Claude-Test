@@ -808,13 +808,14 @@ function buildAnkiUrl(token) {
 .night_mode .af-w,.night_mode .ab-word,.night_mode .ab-def,.night_mode .ab-ext{color:#eeeeee;}
 </style>`;
 
-  const front = css + `<div class="af"><div class="af-w">${token.surface}</div></div>`;
+  const dictWord = token.dictionary_form || token.surface;
+  const front = css + `<div class="af"><div class="af-w">${dictWord}</div></div>`;
 
-  // Word with furigana for the back card
+  // Word with furigana for the back card — only apply ruby when showing the surface form (reading matches)
   const kanjiRe2 = new RegExp('[' + String.fromCodePoint(0x4e00) + '-' + String.fromCodePoint(0x9fff) + ']');
-  const wordRuby = (reading && kanjiRe2.test(token.surface))
-    ? `<ruby>${token.surface}<rt>${reading}</rt></ruby>`
-    : token.surface;
+  const wordRuby = (reading && kanjiRe2.test(dictWord) && dictWord === token.surface)
+    ? `<ruby>${dictWord}<rt>${reading}</rt></ruby>`
+    : dictWord;
 
   let back = css + `<div class="ab">`;
 
